@@ -1,55 +1,59 @@
-# ARCHITECTURE.md — Dosya Yapısı ve Mimari
+# ARCHITECTURE.md — Arrow Orbit Dosya Yapısı ve Mimari
 
 ## Genel Yaklaşım
 
-Flag Striker artık tek dokunuşlu **dönen hedefe pin saplama** arcade oyunudur. Mimari, hedef rotasyonu, pin açıları, çarpışma toleransı ve level ilerlemesi etrafında kurulmalıdır.
+Arrow Orbit tek dokunuşlu **dönen hedefe ok saplama** arcade oyunudur. Mimari, hedef rotasyonu, ok açıları, çarpışma toleransı, tek kalp koruması ve level ilerlemesi etrafında kuruludur.
 
 - Tek yönlü veri akışı: state ekran component'inde, prop ile iner, olaylar callback ile çıkar.
 - Oyun mantığı saf fonksiyonlarda tutulur; animasyon ve render component'lerde kalır.
-- Eski bayrak-harita eşleştirme kodu aşamalı olarak pin/çarpışma mantığıyla değiştirilecek.
+- Oyun objeleri mümkün olduğunca SVG/View ile çizilir.
+- Gereksiz tema/asset bağımlılığı eklenmez.
 
 ## Hedef Klasör Yapısı
 
 ```text
 App.tsx                      # Navigasyon / ekran yönlendirme
 assets/
-  flags/                     # Skin/tema için bayrak PNG'leri
-  maps/                      # Opsiyonel hedef rozeti/tema için harita PNG'leri
-  sounds/                    # Ses efektleri (CC0)
-  backgrounds/               # Opsiyonel atmosfer görselleri
+  sounds/                    # Ses efektleri
 src/
   data/
-    countries.ts             # Tema/skin verisi için ülke renkleri ve kodları
-    levels.ts                # Pin saplama level tanımları
-    strings.ts               # Tüm Türkçe UI metinleri
+    levels.ts                # 50 level tanımı
+    strings.ts               # UI metinleri
   components/
     icons/                   # react-native-svg ikonları
-    Target.tsx               # Yeni dönen hedef diski (ileride Wheel yerine geçebilir)
-    Wheel.tsx                # Mevcut dönen çark; pivot sırasında Target rolüne evrilecek
-    Pin.tsx                  # Tek pin/ok render'ı
-    Ball.tsx                 # Eski top component'i; pivot sonrası kaldırılabilir veya skin'e dönüşebilir
-    HUD.tsx                  # Level, kalan pin, skor/streak
-    FeedbackMessage.tsx      # Fail / başarı mesajları
+    Target.tsx               # Dönen hedef diski/halka/arena formu
+    Pin.tsx                  # Aktif ve saplanmış ok render'ı
+    HUD.tsx                  # Kalp + level
+    SpaceBackground.tsx      # Yıldızlı arka plan + hilal
     ScreenFlash.tsx          # Kısa ekran flaşları
     LevelUpBanner.tsx        # Level complete geçişi
   screens/
     HomeScreen.tsx
+    LevelScreen.tsx
     GameScreen.tsx           # Çekirdek oyun state'i ve animasyon orkestrasyonu
     GameOverScreen.tsx
-    LeaderboardScreen.tsx
-    SettingsScreen.tsx
   utils/
-    gameLogic.ts             # Açı, pin çarpışması, level tamamlanma — saf fonksiyonlar
+    gameLogic.ts             # Açı, çarpışma, level tamamlanma
+    sounds.ts                # Ses çağrıları
     storage.ts               # Local progress/high score
   theme/
-    colors.ts
+    colors.ts                # Ana renkler, zone renkleri ve feedback renkleri
 ```
 
-## Yeni Level Veri Modeli (`levels.ts`)
+## Level Veri Modeli
 
 ```ts
 export type RotationDirection = 'clockwise' | 'counterClockwise';
-export type SpeedPattern = 'constant' | 'accelerating' | 'stopAndGo' | 'switchDirection';
+
+export type SpeedPattern =
+  | 'constant'
+  | 'accelerating'
+  | 'stopAndGo'
+  | 'switchDirection'
+  | 'fakeReverse'
+  | 'glitch';
+
+export type SpecialObjectType = 'heart';
 
 export type LevelConfig = {
   id: number;
@@ -59,14 +63,21 @@ export type LevelConfig = {
   collisionToleranceDeg: number;
   initialPins: number[];
   speedPattern: SpeedPattern;
+  archetype: LevelArchetype;
+  theme: LevelTheme;
+  specialObjects?: Array<{
+    type: SpecialObjectType;
+    angle: number;
+  }>;
 };
 ```
 
-- `requiredPins`: level bitirmek için saplanacak pin sayısı.
+- `requiredPins`: level bitirmek için saplanacak ok sayısı.
 - `rotationDuration`: tam dönüş süresi; küçük değer daha hızlı oyun demektir.
-- `collisionToleranceDeg`: yeni pinin mevcut pine ne kadar yaklaşınca çarpışacağı.
-- `initialPins`: level başında hedefte hazır duran engel pin açıları.
-- `speedPattern`: ileride hız/yön davranışını belirler.
+- `collisionToleranceDeg`: yeni okun mevcut oka ne kadar yaklaşınca çarpışacağı.
+- `initialPins`: level başında hedefte hazır duran engel ok açıları.
+- `speedPattern`: dönüş ritmini belirler.
+- `specialObjects`: hedef üzerinde dönen kalp objeleri.
 
 ## Oyun State Modeli
 
@@ -74,114 +85,109 @@ export type LevelConfig = {
 type GameState = {
   score: number;
   streak: number;
-  currentLevelId: number;
   placedPins: number[];
   remainingPins: number;
-  status: 'playing' | 'launching' | 'levelComplete' | 'failed';
+  lives: number; // 1 = kalp dolu, 0 = kalp boş
 };
 ```
 
 - `placedPins`, hedefin lokal açılarında tutulur.
-- Hedef döndükçe pinler görsel olarak hedefle birlikte döner.
-- Yeni pinin hedefe saplandığı lokal açı, anlık rotation'dan hesaplanır.
+- Hedef döndükçe oklar görsel olarak hedefle birlikte döner.
+- Yeni okun hedefe saplandığı lokal açı, anlık rotation'dan hesaplanır.
+- Hata sırasında kalp doluysa sadece `lives` 0 olur; `placedPins` ve `remainingPins` korunur.
+- Hata sırasında kalp boşsa game over akışı çalışır.
 
 ## `gameLogic.ts` Saf Fonksiyonları
 
-Yeni çekirdek için hedef fonksiyonlar:
-
 ```ts
 normalizeAngle(angle: number): number
-getImpactAngle(rotation: number): number
 angleDistance(a: number, b: number): number
+getImpactAngle(rotation: number): number
 willCollideWithPins(impactAngle: number, placedPins: number[], toleranceDeg: number): boolean
 addPin(placedPins: number[], impactAngle: number): number[]
 isLevelComplete(placedPins: number[], requiredPins: number): boolean
+createLevelState(requiredPins: number, initialPins?: number[]): GameState
+applySafeHit(state: GameState, impactAngle: number): GameState
 ```
-
-Geçiş döneminde eski fonksiyonlar durabilir, fakat yeni oyun kodu bunlara taşınmalıdır:
-
-- Eski: `getHitSegment`, `isMatch`, `nextBallTarget`, `updateScore`
-- Yeni: pin açısı, çarpışma, level completion
 
 ## Component Görevleri
 
-### `Target.tsx` / `Wheel.tsx`
+### `Target.tsx`
 
 - Merkezde dönen hedefi çizer.
 - Reanimated `rotation` shared value ile döner.
-- Üzerinde saplanmış pinleri, hedef lokal açılarına göre render eder.
-- Hedef okunabilir, sade ve yüksek kontrastlı olmalıdır.
+- Level aralığına göre disk, halka, rozet, çift halka veya arena formu gösterir.
+- Merkezde kalan ok sayısını gösterir.
 
 ### `Pin.tsx`
 
-- Tek pin/ok görselini çizer.
+- Tek ok görselini çizer.
 - İki kullanım modu:
-  - fırlatılacak aktif pin
-  - hedefe saplanmış pin
-- Bayrak renkleri veya küçük bayrak şeridi skin olarak kullanılabilir.
+  - fırlatılacak aktif ok
+  - hedefe saplanmış ok
+- Zone bazlı varsayılan renk ve şekil varyasyonu uygular.
 
 ### `HUD.tsx`
 
-- Level.
-- Kalan pin sayısı.
-- Skor veya streak.
-- Gereksiz kalp/can kalabalığı MVP'de kullanılmayabilir.
+- Sol üstte tek SVG kalp.
+- Ortada level bilgisi.
+- Kalp doluysa hata affedilir; kalp boşsa sıradaki hata oyunu bitirir.
 
-### `FeedbackMessage.tsx`
+### `SpaceBackground.tsx`
 
-- Başarı: kısa "Level Tamamlandı" / "Harika!" mesajı.
-- Fail: "Çarpışma!" / "Tekrar dene" mesajı.
-- Mesaj oyunu yavaşlatmamalı.
+- Koyu uzay zemini üzerinde yıldızlar ve sağ üstte sade hilal ay çizer.
+- Zone rengini hafif arka plan wash olarak kullanır.
+- Oynanış objelerini bastıracak yoğun efekt üretmez.
 
 ### `ScreenFlash.tsx`
 
-- Fail için kırmızı flash.
-- Level complete için altın/cyan flash.
+- Hata için kırmızı flash.
+- Başarılı saplanma için kısa yeşil flash.
 
 ## Veri Akışı
 
 ```text
 GameScreen
-  state: level, placedPins, remainingPins, score, streak, status
-  shared: targetRotation, activePinY, shakeX
+  state: levelIdx, gameState, consumedSpecials, pinLaunched, gameOver
+  shared: targetRotation, pinY, shakeX, targetShakeY
 
 tap
-  → active pin launch animation
-  → impact moment reads targetRotation
-  → gameLogic.getImpactAngle(rotation)
-  → gameLogic.willCollideWithPins(...)
-    → collide: status = failed, flash/shake/sound
-    → safe: addPin, remainingPins--, hit feedback
-       → if complete: levelComplete
-       → else: next pin ready
+  -> aktif ok fırlatma animasyonu
+  -> impact anında targetRotation okunur
+  -> getImpactAngle(rotation)
+  -> willCollideWithPins(...)
+    -> çarpışma + kalp dolu: kalp boşalır, level kaldığı yerden sürer
+    -> çarpışma + kalp boş: game over
+    -> güvenli: ok eklenir, remainingPins azalır
+       -> kalp objesi vurulduysa kalp dolar
+       -> level tamamlandıysa sonraki level
+       -> değilse yeni ok hazırlanır
 ```
 
 ## Animasyon Sorumlulukları
 
 | Animasyon | Nerede |
 |---|---|
-| Hedef dönüşü | GameScreen shared value + Target/Wheel render |
-| Aktif pin fırlatma | GameScreen veya Pin |
-| Saplanmış pinlerin hedefle dönmesi | Target/Wheel |
-| Çarpışma shake | GameScreen |
-| Fail / success flash | ScreenFlash |
-| Level complete banner | LevelUpBanner |
-
-## Asset Kuralları
-
-- UI ikonları kod + `react-native-svg` ile çizilir.
-- Bayrak PNG'leri ana mekanik için zorunlu değildir; pin skinleri ve tema paketleri için kullanılabilir.
-- Harita PNG'leri ana mekanik için zorunlu değildir; hedef rozeti/tema olarak kullanılabilir.
-- Ses efektleri CC0 veya ticari kullanıma uygun olmalıdır.
-- Referans oyunlardan ikon, hedef şekli, isim veya mağaza görseli kopyalanmaz.
+| Hedef dönüşü | `GameScreen` shared value + `Target` render |
+| Aktif ok fırlatma | `GameScreen` + `Pin` |
+| Saplanmış okların hedefle dönmesi | `GameScreen` pin orbit |
+| Çarpışma shake | `GameScreen` |
+| Hedef mikro sarsıntısı | `GameScreen` |
+| Fail / success flash | `ScreenFlash` |
+| Level complete banner | `LevelUpBanner` |
 
 ## State ve Kalıcılık
 
 - Aşama 1-3: `useState`, `useRef`, Reanimated shared value.
 - Local storage:
-  - highestLevel
-  - bestStreak
-  - totalPins
-  - soundEnabled
-  - hapticsEnabled
-- Supabase sadece leaderboard aşamasında eklenir.
+  - highestUnlockedLevel
+  - highScore
+  - ileride soundEnabled / hapticsEnabled
+- Leaderboard sadece yayın öncesi net ihtiyaç olursa eklenir.
+
+## Kod Sağlığı Kuralları
+
+- Her davranış değişikliğinden sonra `npx tsc --noEmit`.
+- Oyun matematiği UI içine gömülmez.
+- Asset veya paket eklemeden önce mevcut SVG/View çözümü yeterli mi kontrol edilir.
+- Referans oyunların isim, ikon veya store görsel düzeni kopyalanmaz.

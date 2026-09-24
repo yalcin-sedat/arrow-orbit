@@ -1,0 +1,252 @@
+[
+  {
+    "level": 1,
+    "palette": "cyan",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_01.png"
+  },
+  {
+    "level": 2,
+    "palette": "aqua",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_02.png"
+  },
+  {
+    "level": 3,
+    "palette": "blue",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_03.png"
+  },
+  {
+    "level": 4,
+    "palette": "violet",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_04.png"
+  },
+  {
+    "level": 5,
+    "palette": "teal",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_05.png"
+  },
+  {
+    "level": 6,
+    "palette": "green",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_06.png"
+  },
+  {
+    "level": 7,
+    "palette": "lime",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_07.png"
+  },
+  {
+    "level": 8,
+    "palette": "emerald",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_08.png"
+  },
+  {
+    "level": 9,
+    "palette": "mint",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_09.png"
+  },
+  {
+    "level": 10,
+    "palette": "yellowgreen",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_10.png"
+  },
+  {
+    "level": 11,
+    "palette": "amber",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_11.png"
+  },
+  {
+    "level": 12,
+    "palette": "orange",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_12.png"
+  },
+  {
+    "level": 13,
+    "palette": "copper",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_13.png"
+  },
+  {
+    "level": 14,
+    "palette": "gold",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_14.png"
+  },
+  {
+    "level": 15,
+    "palette": "sun",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_15.png"
+  },
+  {
+    "level": 16,
+    "palette": "rose",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_16.png"
+  },
+  {
+    "level": 17,
+    "palette": "red",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_17.png"
+  },
+  {
+    "level": 18,
+    "palette": "crimson",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_18.png"
+  },
+  {
+    "level": 19,
+    "palette": "pink",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_19.png"
+  },
+  {
+    "level": 20,
+    "palette": "magenta",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_20.png"
+  },
+  {
+    "level": 21,
+    "palette": "purple",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_21.png"
+  },
+  {
+    "level": 22,
+    "palette": "amethyst",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_22.png"
+  },
+  {
+    "level": 23,
+    "palette": "indigo",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_23.png"
+  },
+  {
+    "level": 24,
+    "palette": "galaxy",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_24.png"
+  },
+  {
+    "level": 25,
+    "palette": "plasma",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_25.png"
+  },
+  {
+    "level": 26,
+    "palette": "ice",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_26.png"
+  },
+  {
+    "level": 27,
+    "palette": "silver",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_27.png"
+  },
+  {
+    "level": 28,
+    "palette": "moon",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_28.png"
+  },
+  {
+    "level": 29,
+    "palette": "steel",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_29.png"
+  },
+  {
+    "level": 30,
+    "palette": "whitegold",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_30.png"
+  },
+  {
+    "level": 31,
+    "palette": "neonblue",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_31.png"
+  },
+  {
+    "level": 32,
+    "palette": "cyanviolet",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_32.png"
+  },
+  {
+    "level": 33,
+    "palette": "pinkblue",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_33.png"
+  },
+  {
+    "level": 34,
+    "palette": "violetgold",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_34.png"
+  },
+  {
+    "level": 35,
+    "palette": "aurora",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_35.png"
+  },
+  {
+    "level": 36,
+    "palette": "frost",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_36.png"
+  },
+  {
+    "level": 37,
+    "palette": "arctic",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_37.png"
+  },
+  {
+    "level": 38,
+    "palette": "storm",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_38.png"
+  },
+  {
+    "level": 39,
+    "palette": "royal",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_39.png"
+  },
+  {
+    "level": 40,
+    "palette": "crystal",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_40.png"
+  },
+  {
+    "level": 41,
+    "palette": "obsidian",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_41.png"
+  },
+  {
+    "level": 42,
+    "palette": "blackgold",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_42.png"
+  },
+  {
+    "level": 43,
+    "palette": "eclipse",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_43.png"
+  },
+  {
+    "level": 44,
+    "palette": "void",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_44.png"
+  },
+  {
+    "level": 45,
+    "palette": "bossred",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_45.png"
+  },
+  {
+    "level": 46,
+    "palette": "bossorange",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_46.png"
+  },
+  {
+    "level": 47,
+    "palette": "bossgold",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_47.png"
+  },
+  {
+    "level": 48,
+    "palette": "bossice",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_48.png"
+  },
+  {
+    "level": 49,
+    "palette": "bossviolet",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_49.png"
+  },
+  {
+    "level": 50,
+    "palette": "final",
+    "file": "assets/target_assets/level_variants_simple_bright_preview/level_50.png"
+  }
+]

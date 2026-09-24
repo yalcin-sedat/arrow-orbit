@@ -1,165 +1,153 @@
-# PRD.md — Flag Striker Ürün Gereksinimleri
+# PRD.md — Arrow Orbit Ürün Gereksinimleri
 
 ## 1. Vizyon
 
-**Flag Striker**, Twisty Arrow / Knife Hit ailesinden ilham alan, tek dokunuşla oynanan bir mobil arcade zamanlama oyunudur. Oyuncu, dönen bir hedefe bayrak temalı pin/ok saplar; amaç, mevcut pinlere çarpmadan bölümün istediği sayıda isabet yapmaktır.
+**Arrow Orbit**, tek dokunuşla oynanan bir mobil arcade zamanlama oyunudur. Oyuncu, dönen bir hedefe ok saplar; amaç, mevcut oklara çarpmadan levelin istediği sayıda isabet yapmaktır.
 
-Hedef his: **"Bir kez daha"**, **"Bu sefer geçeceğim"**, **"Çok yakındı"**. Oyun öğretici bir bayrak-harita quiz'i olmaktan çıkar; bayrak ve dünya teması artık ayırt edici görsel kimlik ve koleksiyon katmanıdır.
+Hedef his: **"Bir kez daha"**, **"Bu sefer geçeceğim"**, **"Çok yakındı"**. Oyun hızlı okunur, kısa seanslı, adil ama gittikçe zorlaşan bir refleks ve ritim deneyimi sunar.
 
 ## 1.1 Ürün Yönü
 
-- Referans alınan ana ürün dersi: tek input, kısa seans, anında fail, sıfıra yakın restart süresi.
-- Birebir klon yapılmaz; isim, görsel kimlik, hedef şekli, pin tasarımı, level kurgusu ve meta katman bize özgü olur.
-- Marka yönü: **Flag Striker**. Dünya, bayrak, arena ve pin/ok estetiği birleşir.
-- Eski "bayrak topu + ülke haritası eşleştirme" mekanizması ana oyun olmaktan çıkar.
-- Öğrenme hedefi ikincil hale gelir; öncelik akıcı arcade hissi, okunabilirlik ve tekrar oynanabilirliktir.
+- Referans alınan ana ürün dersi: tek input, kısa seans, anında fail, çok hızlı tekrar deneme.
+- Birebir klon yapılmaz; isim, görsel kimlik, hedef şekli, ok tasarımı ve level kurgusu özgün tutulur.
+- Marka yönü: **Arrow Orbit**. Dönen hedef, keskin oklar, uzay arka planı ve neon arcade hissi birleşir.
+- Öncelik akıcı arcade hissi, okunabilirlik, tekrar oynanabilirlik ve zorluk eğrisidir.
 
 ## 2. Çekirdek Oynanış
 
 - Ekranın ortasında dönen bir hedef bulunur.
-- Oyuncu ekrana dokununca alttan bir pin/ok hedefe doğru fırlar.
-- Pin hedefe saplanır ve hedefle birlikte dönmeye devam eder.
-- Yeni pin, daha önce saplanmış pinlerden birine çarparsa bölüm başarısız olur.
-- Bölüm, gereken pin sayısı başarıyla saplanınca tamamlanır.
-- Her bölüm birkaç saniye ile bir dakika arasında bitebilir.
-- Restart süresi çok kısa olmalıdır; başarısızlık oyuncuyu oyundan koparmamalıdır.
+- Oyuncu ekrana dokununca alttaki ok hedefe doğru fırlar.
+- Ok hedefe saplanır ve hedefle birlikte dönmeye devam eder.
+- Yeni ok, daha önce saplanmış oklardan birine çarparsa hata sayılır.
+- Kalp doluyken yapılan hata kalbi boşaltır; saplanan oklar geri alınmaz ve level kaldığı yerden devam eder.
+- Kalp boşken yapılan hata oyunu bitirir.
+- Dönen kalp objesi vurulursa boş kalp tekrar dolar.
+- Level, gereken ok sayısı başarıyla saplanınca tamamlanır.
 
 ## 3. Temel Kurallar
 
 1. Oyuncu yalnızca dokunur; yön, güç veya sürükleme yoktur.
-2. Hedef sürekli döner; hız ve yön level'a göre değişir.
-3. Saplanmış pinlerin açıları tutulur.
-4. Yeni atışın saplanacağı açı, mevcut pin açılarına çok yakınsa çarpışma sayılır.
-5. Çarpışma olursa fail veya can kaybı olur. MVP için önerilen kural: tek çarpışma = bölüm başarısız.
-6. Gerekli pin sayısına ulaşılırsa level geçilir.
+2. Hedef sürekli döner; hız, yön ve ritim level'a göre değişir.
+3. Saplanmış okların açıları tutulur.
+4. Yeni atışın saplanacağı açı, mevcut ok açılarına çok yakınsa çarpışma sayılır.
+5. Kalp sistemi tek korumadır: dolu kalp hatayı affeder, boş kalpte hata game over yapar.
+6. Gerekli ok sayısına ulaşılırsa level geçilir.
 
 ## 4. Görsel Tasarım Yönü
 
 - Minimal, yüksek kontrastlı, premium arcade.
-- Hedef: merkezde güçlü, net okunan bir dünya/rozet/arena diski.
-- Pinler: bayrak renkli, ince ama okunaklı; uç kısmı hedefe saplanmış hissi vermeli.
-- Arka plan: sade koyu zemin; gerekiyorsa çok hafif arena/stadyum atmosferi.
-- Vurgu renkleri: cyan, kırmızı/turuncu fail, altın level complete, kontrollü bayrak renkleri.
-- UI kalabalık olmamalı; oyuncunun gözü hedef, pinler ve kalan pin sayısında kalmalı.
-- Raster görseller atmosfer için kullanılabilir; oyun objeleri ve UI mümkün olduğunca kod/SVG ile çizilir.
+- Hedef: merkezde güçlü, net okunan disk/halka/rozet/arena formu.
+- Oklar: ince ama okunaklı; uç kısmı hedefe saplanmış hissi vermeli.
+- Arka plan: koyu uzay zemini, yıldız yağmuru ve sağ üstte sade hilal ay.
+- Vurgu renkleri: zone bazlı cyan, yeşil, turuncu, mor, gümüş, altın.
+- UI kalabalık olmamalı; oyuncunun gözü hedef, oklar, kalan ok sayısı ve kalpte kalmalı.
+- Oyun objeleri ve UI mümkün olduğunca kod/SVG ile çizilir.
 
 ## 5. Ekranlar
 
 ### Ana Menü
 
-- Logo: **Flag Striker**.
+- Logo: **Arrow Orbit**.
 - Ana aksiyon: Oyna.
-- İkincil aksiyonlar: Günlük Görev, Sıralama, Pinler/Temalar, Ayarlar.
-- Üst alan: oyuncu seviyesi, coin/gem veya ilerleme bilgisi.
+- İkincil aksiyonlar: Ayarlar ve ileride eklenecek temalar/istatistikler.
 - Menü, pazarlama sayfası değil; oyuncuyu hızlıca oyuna sokan sade bir merkez ekran olmalı.
+
+### Level Ekranı
+
+- 50 level kutusu.
+- İlk açılışta Level 1 açık, diğerleri kilitli olabilir.
+- Test modunda tüm level kilitleri açılabilir.
+- Level geçtikçe sonraki level açılır.
+- Liste scroll edilebilir olmalıdır.
 
 ### Oyun Ekranı
 
-- Üst: level, kalan pin sayısı, streak/score.
-- Orta: dönen hedef + saplanmış pinler.
-- Alt: sıradaki pin/ok ve tek dokunma alanı.
+- Üst: tek kalp, level bilgisi.
+- Orta: dönen hedef + saplanmış oklar + hedef merkezinde kalan ok sayısı.
+- Alt: sıradaki ok ve tek dokunma alanı.
+- `Tap to throw!` yalnızca levelin ilk atışından önce görünür.
 - Fail ve başarı efektleri kısa, net, akışı bozmayan şekilde gösterilir.
-
-### Level Complete
-
-- Kısa kutlama animasyonu.
-- Sonraki levele otomatik veya tek dokunuşla geçiş.
-- Yıldız sistemi opsiyonel: hatasız, hızlı bitirme, streak.
 
 ### Game Over
 
-- Level, skor/streak, "Tekrar Oyna", "Ana Menü".
-- Ödüllü reklam ile ikinci şans ileride eklenebilir; MVP'de şart değil.
-
-### Sıralama
-
-- Top level, streak, toplam isabet gibi sade filtreler.
-- Global leaderboard Aşama 3+.
-
-### Market / Koleksiyon
-
-- Pin/ok skinleri.
-- Hedef temaları.
-- Arka plan/arena temaları.
-- Bayrak paketleri veya renk setleri.
+- Final skor.
+- "Tekrar Oyna" ve "Ana Menü".
+- İleride ikinci şans reklamı eklenebilir; MVP için şart değildir.
 
 ## 6. Level Sistemi
 
 Level zorluğu şu parametrelerle artar:
 
-- `requiredPins`: saplanması gereken pin sayısı.
-- `rotationDuration`: tam turun süresi; küçüldükçe hız artar.
-- `direction`: saat yönü, ters yön veya level içinde yön değişimi.
-- `collisionToleranceDeg`: pinler arası minimum güvenli açı.
-- `initialPins`: level başında hedefte hazır bulunan engel pinleri.
-- `speedPattern`: sabit, hızlanan, yavaşlayan, dur-kalk, yön değiştiren.
+- `requiredPins`: saplanması gereken ok sayısı.
+- `rotationDuration`: tam turun süresi; küçüldükçe hedef hızlanır.
+- `direction`: saat yönü veya ters yön.
+- `collisionToleranceDeg`: oklar arası minimum güvenli açı; büyüdükçe oyun zorlaşır.
+- `initialPins`: level başında hedefte hazır bulunan engel okları.
+- `speedPattern`: sabit, hızlanan, dur-kalk, yön değiştiren, fake reverse veya glitch dönüş.
+- `specialObjects`: hedef üzerinde dönen kalp objeleri.
 
-MVP hedefi:
+Mevcut hedef:
 
-- 30-50 kısa level.
-- İlk 5 level öğretici ama tutorial'sız.
-- 10. level civarı ilk hazır engel pinleri.
-- 20. level civarı yön değişimi.
-- 30+ level'da dar tolerans ve hız varyasyonu.
+- 50 level.
+- 1-45: zor ama adil ana oyun.
+- 46-50: prestige/challenge; başarması çok zor olabilir.
+- 1-20 arası her levelde en az 10 ok bulunur.
 
 ## 7. Skor / Streak / İlerleme
 
-- Her başarılı pin: +1 skor veya level içi progress.
-- Level tamamlanınca bonus: kalan süre, hatasızlık veya streak.
-- Streak, fail olunca sıfırlanır.
-- Oyuncunun en yüksek level'ı ve en iyi streak'i local storage'da saklanır.
+- Her başarılı ok: +1 skor.
+- Streak hata yapınca sıfırlanır.
+- Hatasız level geçişinde level complete banner gösterilir.
+- Oyuncunun açtığı en yüksek level local storage'da saklanır.
 - Progress kaybı kritik risk olarak görülür; kayıt sistemi basit ama sağlam olmalıdır.
 
 ## 8. Geri Bildirim ve His
 
 - Atışta hafif haptic + kısa fırlatma sesi.
-- Başarılı saplanmada küçük hit spark, hedefte mikro titreşim, tatmin edici SFX.
-- Çarpışmada kırmızı flash, ekran shake, kısa fail sesi.
-- Level tamamlanınca altın/cyan kutlama.
+- Başarılı saplanmada küçük hedef titreşimi ve kısa hit hissi.
+- Çarpışmada kırmızı flash, ekran shake, hata sesi.
+- Kalp varken hata: kalp boşalır, level kaldığı yerden devam eder.
+- Level tamamlanınca kısa banner ve geçiş.
 - Restart bir saniyeden kısa hissettirmeli.
 
 ## 9. Ses
 
 - Fırlatma, saplanma, çarpışma, level complete, game over.
 - Kısa, keskin, arcade odaklı sesler.
-- Arka plan müziği varsa telefonun kendi müziğiyle çakışmamalı; ayarlardan kapatılabilir olmalı.
+- Arka plan müziği varsa ayarlardan kapatılabilir olmalı.
 
 ## 10. Kullanıcı / Backend
 
-- MVP: local progress, high score, best streak, sound setting.
-- Sonra: Supabase leaderboard.
+- MVP: local progress, high score, sound setting.
+- Sonra: leaderboard.
 - Daha sonra: Apple/Google login veya anonim kullanıcı adı.
 
 ## 11. Para Kazanma
 
-- Ücretsiz + AdMob.
+- Ücretsiz + reklam opsiyonu ileride değerlendirilebilir.
 - Reklam frekansı oyunun ritmini bozmamalı.
 - İlk seanslarda agresif interstitial yok.
-- Interstitial için öneri: birkaç fail veya birkaç level sonrası.
-- Rewarded ad: ikinci şans, streak koruma, ekstra coin gibi açık değer sunmalı.
+- Rewarded ad ancak açık değer sunarsa eklenmeli.
 - Tek ve anlaşılır IAP: reklamsız sürüm.
 
 ## 12. Yayınlama
 
 - EAS Build.
-- App icon + splash yeni mekanik ile uyumlu olmalı: dönen hedef + bayrak pin.
+- App icon + splash yeni mekanik ile uyumlu olmalı: dönen hedef + ok.
 - Store görselleri oyunun gerçek oynanışını göstermeli.
 - Gizlilik politikası zorunlu.
 - Store metni "tek dokunuş timing arcade" değerini öne çıkarmalı.
 
 ## 13. Telif ve Klon Riski
 
-- Twisty Arrow, Knife Hit, aa gibi oyunların birebir kopyası yapılmaz.
-- Mekanik türünden ilham alınır; marka, ekran kompozisyonu, level tasarımı, ikon, hedef/pin görselleri özgün tutulur.
-- "Twisty Arrow" adı, ikon biçimi, mağaza açıklaması veya görsel düzeni taklit edilmez.
-- Gerçek futbolcu, kulüp, turnuva, lisanslı logo kullanılmaz.
-- Bayrak kullanımı ve asset lisansları ayrıca doğrulanır.
+- Referans oyunların adı, ikon biçimi, mağaza açıklaması veya görsel düzeni taklit edilmez.
+- Mekanik türünden ilham alınır; marka, ekran kompozisyonu, level tasarımı, ikon, hedef/ok görselleri özgün tutulur.
+- Lisanslı logo, karakter, marka veya mağaza kimliği kullanılmaz.
 
 ## 14. Başarı Kriteri
 
 - Oyuncu 3 saniyede ne yapacağını anlar.
 - Fail sonrası tekrar deneme çok hızlıdır.
-- İlk 10 level akıcı ve adil hissettirir.
+- İlk 10 level akıcı, yeterince uzun ve adil hissettirir.
 - Oyuncu "yakındı" hissiyle tekrar dener.
 - Progress güvenilir saklanır.
-- Reklam şikayeti tasarımın merkez problemi haline gelmez.

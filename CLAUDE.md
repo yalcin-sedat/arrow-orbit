@@ -4,20 +4,19 @@ Bu dosya Claude Code / Codex oturumları için proje talimatlarını içerir.
 
 ## Proje Özeti
 
-**Flag Striker** — tek dokunuşla oynanan, dönen hedefe bayrak temalı pin/ok saplama üzerine kurulu mobil arcade zamanlama oyunu.
+**Arrow Orbit** — tek dokunuşla oynanan, dönen hedefe ok saplama üzerine kurulu mobil arcade zamanlama oyunu.
 
-Oyuncu ekrana dokunur; alttaki pin hedefe fırlar. Pin hedefe saplanır ve hedefle birlikte dönmeye devam eder. Yeni pin, daha önce saplanan pinlere çarparsa bölüm başarısız olur. Gerekli pin sayısı tamamlanınca level geçilir.
-
-Eski "bayrak desenli topu doğru ülke haritası dilimine fırlatma" fikri artık ana oyun değildir. Bayrak/dünya teması görsel kimlik, skin ve meta katman olarak korunabilir.
+Oyuncu ekrana dokunur; alttaki ok hedefe fırlar. Ok hedefe saplanır ve hedefle birlikte dönmeye devam eder. Yeni ok, daha önce saplanan oklara çarparsa kalp doluysa kalp boşalır ve oyun devam eder; kalp boşsa oyun biter. Gerekli ok sayısı tamamlanınca level geçilir.
 
 ## Çekirdek Mekanik
 
 - **Tek input:** ekrana dokun.
-- **Hedef:** ortada dönen disk/rozet.
-- **Pin/ok:** alttan hedefe fırlar.
-- **Başarılı atış:** pin hedefe saplanır, hedefle birlikte dönmeye devam eder.
-- **Fail:** yeni pin mevcut pine çok yakın açıyla saplanmaya çalışırsa çarpışma olur.
-- **Level complete:** `requiredPins` kadar güvenli pin saplanır.
+- **Hedef:** ortada dönen disk/halka/rozet/arena.
+- **Ok:** alttan hedefe fırlar.
+- **Başarılı atış:** ok hedefe saplanır, hedefle birlikte dönmeye devam eder.
+- **Hata:** yeni ok mevcut oka çok yakın açıyla saplanmaya çalışırsa çarpışma olur.
+- **Kalp:** doluyken bir hatayı affeder, boşken yapılan hata game over yapar.
+- **Level complete:** `requiredPins` kadar güvenli ok saplanır.
 - **Ana his:** hızlı, net, tekrar oynatan, "az kaldı" duygusu veren arcade.
 
 ## Teknoloji Yığını
@@ -27,20 +26,19 @@ Eski "bayrak desenli topu doğru ülke haritası dilimine fırlatma" fikri artı
 - React Native SVG
 - React Native Gesture Handler
 - AsyncStorage
-- Skia kullanma; SVG + View + PNG yeterli.
+- Skia kullanma; SVG + View yeterli.
 
 ## Dil Kuralı
 
-- Tüm UI metinleri Türkçe.
-- Tüm metinler `src/data/strings.ts` içinde tutulmalı.
-- İngilizce/Almanca karışık UI metni yazma.
+- UI dili proje kararına göre tek dilde tutulmalı.
+- Yeni metinler `src/data/strings.ts` içinde tutulmalı.
+- Rastgele hardcoded UI metni ekleme.
 
 ## Telif ve Klon Riski
 
-- Twisty Arrow, Knife Hit, aa gibi oyunlardan sadece tür ve ürün dersi alınır.
-- İsim, ikon, mağaza görseli, level düzeni, hedef/pin görseli birebir kopyalanmaz.
-- Gerçek futbolcu, kulüp, turnuva, lisanslı logo kullanılmaz.
-- Bayrak asset'leri ve diğer görseller ticari kullanıma uygun lisansla doğrulanmalıdır.
+- Referans oyunlardan sadece tür ve ürün dersi alınır.
+- İsim, ikon, mağaza görseli, level düzeni, hedef/ok görseli birebir kopyalanmaz.
+- Lisanslı logo, karakter, marka veya store kimliği kullanılmaz.
 
 ## Kod Stili Kuralları
 
@@ -48,10 +46,10 @@ Eski "bayrak desenli topu doğru ülke haritası dilimine fırlatma" fikri artı
 - Oyun matematiğini saf fonksiyonlarda tut.
 - Şu konularda kısa Türkçe yorum bırak:
   - hedef rotation hesabı
-  - pin impact açısı
-  - pin çarpışma toleransı
+  - ok impact açısı
+  - çarpışma toleransı
   - level tamamlanma
-  - restart / fail akışı
+  - kalp / fail akışı
 - Gereksiz abstraction ekleme; önce oynanabilir çekirdek.
 
 ## Mimari Kuralı
@@ -59,8 +57,8 @@ Eski "bayrak desenli topu doğru ülke haritası dilimine fırlatma" fikri artı
 - Oyun state'i `GameScreen.tsx` içinde yönetilebilir.
 - Matematik ve kararlar `src/utils/gameLogic.ts` içinde saf fonksiyon olmalı.
 - Level verisi `src/data/levels.ts`.
-- Görsel hedef/pin component'leri `src/components/`.
-- Yeni çekirdek eski eşleştirme fonksiyonlarına bağımlı kalmamalı.
+- Görsel hedef/ok component'leri `src/components/`.
+- Yeni kod eski prototip componentlerine bağımlı olmamalı.
 
 ## Çalışma Prensipleri
 
@@ -72,10 +70,10 @@ Eski "bayrak desenli topu doğru ülke haritası dilimine fırlatma" fikri artı
 
 ## Yapma Listesi
 
-- Backend/Supabase'i leaderboard aşamasından önce ekleme.
-- Reklam/AdMob'u yayın aşamasından önce ekleme.
-- Twisty Arrow adını, ikonunu veya görsel kompozisyonunu kopyalama.
-- Eski bayrak-harita eşleştirme modeline yeni özellik ekleme; pivot yeni pin mekaniğine yapılacak.
+- Backend/leaderboard'u yayın hazırlığına kadar ekleme.
+- Reklam entegrasyonunu oyun hissi netleşmeden ekleme.
+- Referans oyunların adını, ikonunu veya görsel kompozisyonunu kopyalama.
+- Eski prototip modeline yeni özellik ekleme.
 - Agresif reklam frekansını ürün kararına dönüştürme.
 
 ## Önemli Komutlar
@@ -91,5 +89,7 @@ npx tsc --noEmit
 - `PRD.md` — ürün vizyonu
 - `ARCHITECTURE.md` — dosya yapısı ve veri akışı
 - `ROADMAP.md` — aşamalı görev listesi
-- `PROGRESS.md` — canlı durum defteri
+- `PROGRESS.md` — güncel durum defteri
+- `LEVELS.md` — level tasarımı
+- `VISUALS.md` — görsel sistem
 - `SETUP.md` — kurulum notları

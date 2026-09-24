@@ -1,15 +1,15 @@
-# Flag Striker
+# Arrow Orbit
 
-Tek dokunuşla oynanan, dönen hedefe bayrak temalı pin/ok saplama üzerine kurulu Expo + React Native arcade oyunu.
+Tek dokunuşla oynanan, dönen hedefe ok saplama üzerine kurulu Expo + React Native arcade oyunu.
 
-Oyuncu ekrana dokunur, alttaki pin hedefe fırlar. Pin hedefe saplanır ve hedefle birlikte döner. Yeni pin mevcut pinlere çarparsa bölüm başarısız olur; gereken pin sayısı tamamlanınca level geçilir.
+Oyuncu ekrana dokunur, alttaki ok hedefe fırlar. Ok hedefe saplanır ve hedefle birlikte döner. Yeni ok mevcut oklara çarparsa kalp koruması varsa kalp gider ve oyun kaldığı yerden devam eder; kalp yoksa oyun biter. Gereken ok sayısı tamamlanınca level geçilir.
 
 ## Proje Kökü
 
 Bu uygulamanın gerçek proje kökü bu klasördür:
 
 ```bash
-flag-striker/
+arrow-orbit/
 ```
 
 Codex, Claude Code, VS Code ve terminal oturumlarını mümkünse bu klasörden başlat.
@@ -25,23 +25,23 @@ npx tsc --noEmit
 
 ```text
 assets/
-  flags/        # Bayrak PNG dosyaları (skin/tema için)
-  maps/         # Harita PNG dosyaları (opsiyonel tema/rozet için)
   sounds/       # Ses efektleri
 src/
-  components/   # Görsel UI component'leri
-  data/         # Level, tema ve metin verileri
-  screens/      # Ekranlar
-  theme/        # Renkler ve görsel tema
-  utils/        # Saf oyun mantığı, açı/çarpışma hesapları ve yardımcılar
+  components/   # Target, Pin, HUD, arka plan ve UI component'leri
+  data/         # Level ve metin verileri
+  screens/      # Home, Level, Game, GameOver ekranları
+  theme/        # Renkler ve görsel zone sistemi
+  utils/        # Saf oyun mantığı, storage ve yardımcılar
 ```
 
 ## Proje Hafızası
 
 - `AGENTS.md` — agent rolleri ve dosya sahipliği
 - `CLAUDE.md` — proje talimatları
-- `PROGRESS.md` — canlı ilerleme günlüğü
+- `PROGRESS.md` — güncel durum defteri
 - `PRD.md` — ürün kapsamı
 - `ARCHITECTURE.md` — hedef mimari
-- `ROADMAP.md` — aşamalı geliştirme planı
-- `SETUP.md` — kurulum ve asset notları
+- `ROADMAP.md` — geliştirme planı
+- `SETUP.md` — kurulum notları
+- `LEVELS.md` — level tasarımı
+- `VISUALS.md` — görsel sistem

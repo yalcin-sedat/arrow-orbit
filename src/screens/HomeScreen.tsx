@@ -1,16 +1,18 @@
-import React, { ReactNode, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   ImageBackground,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
+  interpolate,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -18,126 +20,392 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import {
-  BallBadgeIcon,
-  BallCollectionIcon,
-  CalendarIcon,
-  ChevronIcon,
-  CoinIcon,
-  FlagRibbonIcon,
-  GemIcon,
-  GlobeIcon,
-  PlayIcon,
-  SettingsIcon,
-  TrophyIcon,
-} from '../components/icons/GameIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Pin, { PIN_H, PIN_W } from '../components/Pin';
 import { strings } from '../data/strings';
+import { sounds } from '../utils/sounds';
+import { getAppSettings } from '../utils/storage';
 
-const homeBackground = require('../../assets/backgrounds/home-background-world.png');
+const HOME_BACKGROUND_LAYER = require('../../assets/ui/homepage-background.jpg');
+const HOME_TARGET = require('../../assets/ui/homepage-target.png');
+const HOME_TARGET_ROTATION_MS = 18000;
+const HOME_ARROW_IMPACT_MS = 680;
+const HOME_ARROW_DELAYS = [0, 900, 1800] as const;
+const HOME_ARROW_SCALE = 1.22;
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 type HomeScreenProps = {
+  bestScore: number;
+  highestLevel: number;
   onPlay: () => void;
+  onRemoveAds: () => void;
+  onScoreboard: () => void;
+  onSettings: () => void;
 };
 
-type LockedMenuKey = 'daily' | 'leaderboard' | 'collection' | 'settings';
-
-const LOCKED_MENU_MESSAGES: Record<LockedMenuKey, string> = {
-  collection: strings.karakterler,
-  daily: strings.gunlukGorev,
-  leaderboard: strings.siralama,
-  settings: strings.ayarlar,
-};
-
-const menuItems: Array<{
-  icon: ReactNode;
-  key: LockedMenuKey;
-  label: string;
-}> = [
-  { icon: <CalendarIcon />, key: 'daily', label: strings.gunlukGorev.toUpperCase() },
-  { icon: <TrophyIcon />, key: 'leaderboard', label: strings.siralama.toUpperCase() },
-  { icon: <BallCollectionIcon />, key: 'collection', label: strings.toplar },
-];
-
-export default function HomeScreen({ onPlay }: HomeScreenProps) {
+export default function HomeScreen({
+  bestScore,
+  highestLevel,
+  onPlay,
+  onRemoveAds,
+  onScoreboard,
+  onSettings,
+}: HomeScreenProps) {
   const { height, width } = useWindowDimensions();
+  const [soundEnabled, setSoundEnabled] = useState(sounds.isEnabled());
+  const soundEnabledRef = useRef(soundEnabled);
   const compact = height < 760;
-  const shellWidth = Math.min(width - 32, 380);
-  const titleScale = Math.min(Math.max(width / 390, 0.9), 1.08);
-  const menuTop = compact ? height * 0.36 : height * 0.39;
-  const buttonHeight = compact ? 56 : 62;
+  const isTablet = width >= 768;
+  const playSize = isTablet ? Math.min(width * 0.195, 154) : Math.min(width * 0.285, 126);
+  const targetSize = isTablet
+    ? Math.min(width * 0.52, height * 0.46, 430)
+    : Math.min(width * 0.78, height * 0.36);
+  const targetRimSize = targetSize * 0.82;
+  const targetCenterX = width / 2;
+  const targetCenterY = isTablet ? height * 0.43 : height * (compact ? 0.455 : 0.47);
+  const playCenterX = targetCenterX;
+  const playCenterY = targetCenterY;
+  const controlSize = isTablet ? 56 : 42;
+  const controlRadius = controlSize / 2;
+  const menuIconSize = isTablet ? 42 : 34;
+  const socialIconSize = isTablet ? 31 : 25;
+  const shortcutPanelWidth = isTablet ? Math.min(width * 0.45, 430) : Math.min(width - 42, 338);
+  const socialTop = Math.min(
+    targetCenterY + targetSize * (isTablet ? 0.53 : 0.58),
+    height - (compact ? 190 : isTablet ? 250 : 226),
+  );
+  const socialOffset = isTablet ? Math.min(width * 0.26, 220) : Math.min(width * 0.43, 168);
+  const statsWidth = isTablet ? Math.min(width * 0.3, 300) : Math.min(width - 118, 230);
+  const statsTop = socialTop + 1;
+  const targetRotation = useSharedValue(0);
+  const arrowOneProgress = useSharedValue(0);
+  const arrowTwoProgress = useSharedValue(0);
+  const arrowThreeProgress = useSharedValue(0);
+  const playPressScale = useSharedValue(1);
 
-  function handleLockedMenu(key: LockedMenuKey) {
-    Alert.alert(LOCKED_MENU_MESSAGES[key], strings.yakinda);
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+    sounds.setEnabled(soundEnabled);
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getAppSettings().then((settings) => {
+      if (!mounted) return;
+      // soundEnabled yüklenmez — sounds.ts zaten true ile başlar
+      void settings;
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    targetRotation.value = 0;
+    targetRotation.value = withRepeat(
+      withTiming(360, { duration: HOME_TARGET_ROTATION_MS, easing: Easing.linear }),
+      -1,
+      false,
+    );
+  }, [targetRotation]);
+
+  useEffect(() => {
+    const animateArrow = (progress: SharedValue<number>, delay: number) => {
+      progress.value = withDelay(
+        delay,
+        withSequence(
+          withTiming(0.24, { duration: 680, easing: Easing.out(Easing.cubic) }),
+          withTiming(0.36, { duration: 260, easing: Easing.out(Easing.quad) }),
+          withTiming(1, { duration: 0 }),
+        ),
+      );
+    };
+
+    animateArrow(arrowOneProgress, HOME_ARROW_DELAYS[0]);
+    animateArrow(arrowTwoProgress, HOME_ARROW_DELAYS[1]);
+    animateArrow(arrowThreeProgress, HOME_ARROW_DELAYS[2]);
+    const timers = HOME_ARROW_DELAYS.map((delay) => (
+      setTimeout(() => {
+        if (soundEnabledRef.current) {
+          sounds.correct();
+        }
+      }, delay + HOME_ARROW_IMPACT_MS)
+    ));
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [
+    arrowOneProgress,
+    arrowThreeProgress,
+    arrowTwoProgress,
+  ]);
+
+  const targetMotionStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${targetRotation.value}deg` }],
+  }));
+
+  const playButtonMotionStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: playPressScale.value }],
+  }));
+
+  function handleToggleSound() {
+    setSoundEnabled((enabled) => {
+      const next = !enabled;
+      soundEnabledRef.current = next;
+      sounds.setEnabled(next);
+
+      if (next) {
+        sounds.button();
+      }
+
+      return next;
+    });
+  }
+
+  function handleShareGame() {
+    if (soundEnabledRef.current) {
+      sounds.button();
+    }
+
+    Share.share({
+      message: 'Arrow Orbit oynuyorum. Sen de dene!',
+      title: 'Arrow Orbit',
+    }).catch(() => {
+      // Paylaşım iptal edilirse ana sayfayı bölme.
+    });
+  }
+
+  function handleRateGame() {
+    if (soundEnabledRef.current) {
+      sounds.button();
+    }
+
+    Alert.alert('Arrow Orbit', 'Mağaza bağlantısı eklendiğinde değerlendirme buradan açılacak.');
+  }
+
+  function handlePlayPressIn() {
+    sounds.button();
+    playPressScale.value = withTiming(0.93, {
+      duration: 90,
+      easing: Easing.out(Easing.quad),
+    });
+  }
+
+  function handlePlayPressOut() {
+    playPressScale.value = withTiming(1, {
+      duration: 210,
+      easing: Easing.out(Easing.back(1.8)),
+    });
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <ImageBackground
-        source={homeBackground}
         resizeMode="cover"
+        source={HOME_BACKGROUND_LAYER}
         style={styles.background}
       >
-        <View style={styles.scrim} />
-        <View style={styles.vignetteTop} />
-        <View style={styles.vignetteBottom} />
-
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.topBar}>
-            <PlayerProgress compact={compact} />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.targetNeonBorder,
+              {
+                height: targetRimSize,
+                left: width / 2 - targetRimSize / 2,
+                top: targetCenterY - targetRimSize / 2,
+                width: targetRimSize,
+              },
+              targetMotionStyle,
+            ]}
+          >
+            <TargetNeonBorder size={targetRimSize} />
+          </Animated.View>
 
-            <View style={styles.topActions}>
-              <CurrencyPill icon={<CoinIcon />} value="1.250" />
-              <CurrencyPill icon={<GemIcon />} value="85" />
-              <TouchableOpacity
-                accessibilityLabel={strings.ayarlar}
-                accessibilityRole="button"
-                activeOpacity={0.82}
-                onPress={() => handleLockedMenu('settings')}
-                style={styles.settingsButton}
-              >
-                <SettingsIcon size={25} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={[styles.brand, { marginTop: compact ? 22 : 34 }]}>
-            <FlagRibbonIcon size={compact ? 28 : 34} />
-            <Text style={[styles.brandKicker, { fontSize: 15 * titleScale }]}>
-              {strings.brandKicker}
-            </Text>
-            <Text style={[styles.brandTitle, { fontSize: 39 * titleScale }]}>
-              {strings.brandTitle}
-            </Text>
-            <View style={styles.brandRule} />
-          </View>
+          <Animated.Image
+            resizeMode="contain"
+            source={HOME_TARGET}
+            style={[
+              styles.homeTarget,
+              {
+                height: targetSize,
+                left: width / 2 - targetSize / 2,
+                top: targetCenterY - targetSize / 2,
+                width: targetSize,
+              },
+              targetMotionStyle,
+            ]}
+          />
 
           <View
+            pointerEvents="none"
             style={[
-              styles.menuShell,
+              styles.playerStatsPanel,
               {
-                top: menuTop,
-                transform: [{ translateX: -shellWidth / 2 }],
-                width: shellWidth,
+                left: width / 2 - statsWidth / 2,
+                top: statsTop,
+                width: statsWidth,
               },
             ]}
           >
-            <View style={styles.shellHeader}>
-              <GlobeIcon color="#75f7ff" size={22} />
-              <Text style={styles.shellHeaderText}>{strings.worldArena}</Text>
+            <View
+              style={[
+                styles.playerStatItem,
+                styles.playerStatLeft,
+                isTablet ? styles.playerStatItemTablet : null,
+              ]}
+            >
+              <View style={styles.playerStatTextBlock}>
+                <Text style={[styles.statLabel, isTablet ? styles.statLabelTablet : null]}>LEVEL</Text>
+                <Text style={[styles.statValue, isTablet ? styles.statValueTablet : null]}>{highestLevel}</Text>
+              </View>
             </View>
+            <View
+              style={[
+                styles.playerStatItem,
+                styles.playerStatRight,
+                isTablet ? styles.playerStatItemTablet : null,
+              ]}
+            >
+              <View style={styles.playerStatTextBlock}>
+                <Text style={[styles.statLabel, isTablet ? styles.statLabelTablet : null]}>BEST</Text>
+                <Text style={[styles.statValue, isTablet ? styles.statValueTablet : null]}>{bestScore}</Text>
+              </View>
+            </View>
+          </View>
 
-            <PrimaryButton height={buttonHeight + 8} onPress={onPlay} />
+          <AnimatedTouchableOpacity
+            accessibilityLabel={strings.oyna}
+            accessibilityRole="button"
+            activeOpacity={0.9}
+            onPress={onPlay}
+            onPressIn={handlePlayPressIn}
+            onPressOut={handlePlayPressOut}
+            style={[
+              styles.targetPlayButton,
+              {
+                height: playSize,
+                left: playCenterX - playSize / 2,
+                top: playCenterY - playSize / 2,
+                width: playSize,
+              },
+              playButtonMotionStyle,
+            ]}
+          >
+            <BlinkPlayIcon size={playSize} />
+          </AnimatedTouchableOpacity>
 
-            <View style={styles.secondaryGrid}>
-              {menuItems.map((item, index) => (
-                <SecondaryButton
-                  delay={160 + index * 140}
-                  icon={item.icon}
-                  key={item.key}
-                  label={item.label}
-                  onPress={() => handleLockedMenu(item.key)}
-                />
-              ))}
+          <HomeFlyingArrow
+            delay={HOME_ARROW_DELAYS[0]}
+            impactAngle={28}
+            levelId={1}
+            progress={arrowOneProgress}
+            targetRotation={targetRotation}
+            targetCenterX={targetCenterX}
+            targetCenterY={targetCenterY}
+            targetRadius={targetSize * 0.47}
+            travel={targetSize * 0.86}
+          />
+          <HomeFlyingArrow
+            delay={HOME_ARROW_DELAYS[1]}
+            impactAngle={308}
+            levelId={15}
+            progress={arrowTwoProgress}
+            targetRotation={targetRotation}
+            targetCenterX={targetCenterX}
+            targetCenterY={targetCenterY}
+            targetRadius={targetSize * 0.47}
+            travel={targetSize * 0.84}
+          />
+          <HomeFlyingArrow
+            delay={HOME_ARROW_DELAYS[2]}
+            impactAngle={132}
+            levelId={31}
+            progress={arrowThreeProgress}
+            targetRotation={targetRotation}
+            targetCenterX={targetCenterX}
+            targetCenterY={targetCenterY}
+            targetRadius={targetSize * 0.47}
+            travel={targetSize * 0.84}
+          />
+
+          <TouchableOpacity
+            accessibilityLabel="Rate game"
+            accessibilityRole="button"
+            activeOpacity={0.82}
+            onPress={handleRateGame}
+            style={[
+              styles.socialButton,
+              {
+                borderRadius: controlRadius,
+                height: controlSize,
+                left: width / 2 - socialOffset - controlRadius,
+                top: socialTop,
+                width: controlSize,
+              },
+            ]}
+          >
+            <QuickActionIcon size={socialIconSize} type="rate" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            accessibilityLabel="Share game"
+            accessibilityRole="button"
+            activeOpacity={0.82}
+            onPress={handleShareGame}
+            style={[
+              styles.socialButton,
+              {
+                borderRadius: controlRadius,
+                height: controlSize,
+                left: width / 2 + socialOffset - controlRadius,
+                top: socialTop,
+                width: controlSize,
+              },
+            ]}
+          >
+            <QuickActionIcon size={socialIconSize} type="share" />
+          </TouchableOpacity>
+
+          <View
+            style={[
+              styles.shortcutPanel,
+              {
+                left: width / 2 - shortcutPanelWidth / 2,
+                marginBottom: compact ? 92 : isTablet ? 112 : 122,
+                width: shortcutPanelWidth,
+              },
+            ]}
+          >
+            <View style={styles.secondaryRow}>
+              <HomeShortcut
+                buttonSize={controlSize}
+                icon={<HomeMenuIcon size={menuIconSize} type="scores" />}
+                label="SCORES"
+                onPress={onScoreboard}
+              />
+              <HomeShortcut
+                buttonSize={controlSize}
+                icon={<HomeMenuIcon size={menuIconSize} type="removeAds" />}
+                label="NO ADS"
+                onPress={onRemoveAds}
+              />
+              <HomeShortcut
+                buttonSize={controlSize}
+                icon={<HomeMenuIcon size={menuIconSize} type={soundEnabled ? 'soundOn' : 'soundOff'} />}
+                label="SOUND"
+                onPress={handleToggleSound}
+              />
+              <HomeShortcut
+                buttonSize={controlSize}
+                icon={<HomeMenuIcon size={menuIconSize} type="settings" />}
+                label="SETTINGS"
+                onPress={onSettings}
+              />
             </View>
           </View>
         </SafeAreaView>
@@ -146,434 +414,660 @@ export default function HomeScreen({ onPlay }: HomeScreenProps) {
   );
 }
 
-type PlayerProgressProps = {
-  compact: boolean;
-};
-
-function PlayerProgress({ compact }: PlayerProgressProps) {
+function QuickActionIcon({ size = 25, type }: { size?: number; type: 'rate' | 'share' }) {
   return (
-    <View style={[styles.playerCard, compact && styles.playerCardCompact]}>
-      <View style={styles.avatarFrame}>
-        <BallBadgeIcon size={compact ? 32 : 37} />
-      </View>
-      <View style={styles.playerCopy}>
-        <Text style={styles.rankText}>{strings.rankStriker}</Text>
-        <Text style={styles.levelText}>{strings.levelLabel(25)}</Text>
-        <View style={styles.xpTrack}>
-          <View style={styles.xpFill} />
-        </View>
-      </View>
-    </View>
+    <Svg height={size} viewBox="0 0 32 32" width={size}>
+      <Defs>
+        <LinearGradient id={`quickIcon-${type}`} x1="4" x2="28" y1="5" y2="27">
+          <Stop offset="0" stopColor="#b7ffff" />
+          <Stop offset="0.5" stopColor="#19e5ff" />
+          <Stop offset="1" stopColor={type === 'share' ? '#8b4dff' : '#ff9a28'} />
+        </LinearGradient>
+      </Defs>
+      {type === 'share' ? (
+        <>
+          <Circle cx="10" cy="16" fill="none" r="3.5" stroke="url(#quickIcon-share)" strokeWidth="2.3" />
+          <Circle cx="23" cy="9" fill="none" r="3.5" stroke="url(#quickIcon-share)" strokeWidth="2.3" />
+          <Circle cx="23" cy="23" fill="none" r="3.5" stroke="url(#quickIcon-share)" strokeWidth="2.3" />
+          <Path d="M13.2 14.4 L19.8 10.8" stroke="url(#quickIcon-share)" strokeLinecap="round" strokeWidth="2.3" />
+          <Path d="M13.2 17.6 L19.8 21.2" stroke="url(#quickIcon-share)" strokeLinecap="round" strokeWidth="2.3" />
+        </>
+      ) : (
+        <Path
+          d="M16 4.8 L19.3 12 L27.1 12.8 L21.2 18 L22.9 25.7 L16 21.7 L9.1 25.7 L10.8 18 L4.9 12.8 L12.7 12 Z"
+          fill="rgba(255,216,74,0.16)"
+          stroke="url(#quickIcon-rate)"
+          strokeLinejoin="round"
+          strokeWidth="2.2"
+        />
+      )}
+    </Svg>
   );
 }
 
-type CurrencyPillProps = {
-  icon: ReactNode;
-  value: string;
-};
-
-function CurrencyPill({ icon, value }: CurrencyPillProps) {
+function TargetNeonBorder({ size }: { size: number }) {
   return (
-    <View style={styles.currencyPill}>
-      <View style={styles.currencyIcon}>{icon}</View>
-      <Text style={styles.currencyText}>{value}</Text>
-    </View>
+    <Svg height={size} viewBox="0 0 100 100" width={size}>
+      <Defs>
+        <RadialGradient cx="50%" cy="50%" id="targetHaloGlow" r="50%">
+          <Stop offset="0.84" stopColor="#00d4ff" stopOpacity="0" />
+          <Stop offset="0.93" stopColor="#00d4ff" stopOpacity="0.18" />
+          <Stop offset="0.98" stopColor="#8b4dff" stopOpacity="0.18" />
+          <Stop offset="1" stopColor="#ff9a28" stopOpacity="0.06" />
+        </RadialGradient>
+        <LinearGradient id="targetHaloBlue" x1="18" x2="82" y1="12" y2="88">
+          <Stop offset="0" stopColor="#8ffcff" />
+          <Stop offset="0.45" stopColor="#00d4ff" />
+          <Stop offset="1" stopColor="#2a8cff" />
+        </LinearGradient>
+        <LinearGradient id="targetHaloWarm" x1="26" x2="86" y1="88" y2="20">
+          <Stop offset="0" stopColor="#9d4dff" />
+          <Stop offset="0.45" stopColor="#ff9a28" />
+          <Stop offset="1" stopColor="#ffd84a" />
+        </LinearGradient>
+      </Defs>
+      <Circle cx="50" cy="50" fill="none" r="49" stroke="#00d4ff" strokeOpacity="0.16" strokeWidth="0.75" />
+      <Path
+        d="M 50 1 A 49 49 0 0 1 97.8 39.8"
+        fill="none"
+        stroke="url(#targetHaloBlue)"
+        strokeLinecap="round"
+        strokeOpacity="0.86"
+        strokeWidth="1.35"
+      />
+      <Path
+        d="M 97.5 58.4 A 49 49 0 0 1 58.4 97.5"
+        fill="none"
+        stroke="url(#targetHaloWarm)"
+        strokeLinecap="round"
+        strokeOpacity="0.8"
+        strokeWidth="1.35"
+      />
+      <Path
+        d="M 39 98 A 49 49 0 0 1 2 60"
+        fill="none"
+        stroke="#8b4dff"
+        strokeLinecap="round"
+        strokeOpacity="0.68"
+        strokeWidth="1.25"
+      />
+      <Path
+        d="M 3 39 A 49 49 0 0 1 38 3"
+        fill="none"
+        stroke="#00d4ff"
+        strokeLinecap="round"
+        strokeOpacity="0.68"
+        strokeWidth="1.2"
+      />
+    </Svg>
   );
 }
 
-type PrimaryButtonProps = {
-  height: number;
-  onPress: () => void;
-};
+function HomeMenuIcon({
+  size = 34,
+  type,
+}: {
+  size?: number;
+  type: 'removeAds' | 'scores' | 'settings' | 'soundOff' | 'soundOn';
+}) {
+  const accent = type === 'scores'
+    ? '#ffd84a'
+    : type === 'removeAds'
+      ? '#75f7ff'
+      : type === 'settings'
+        ? '#8ffcff'
+        : type === 'soundOn'
+          ? '#8ffcff'
+          : '#ff6b8f';
+  const end = type === 'scores'
+    ? '#ff9a28'
+    : type === 'removeAds'
+      ? '#00ff88'
+      : type === 'settings'
+        ? '#00d4ff'
+        : type === 'soundOn'
+          ? '#00d4ff'
+          : '#8b4dff';
+  const gradientId = `homeMenuIcon-${type}`;
+  const glowId = `homeMenuGlow-${type}`;
 
-function PrimaryButton({ height, onPress }: PrimaryButtonProps) {
-  const pulse = usePulse(0);
+  return (
+    <Svg height={size} viewBox="0 0 64 64" width={size}>
+      <Defs>
+        <RadialGradient cx="50%" cy="45%" id={glowId} r="56%">
+          <Stop offset="0" stopColor={accent} stopOpacity="0.3" />
+          <Stop offset="0.62" stopColor={end} stopOpacity="0.12" />
+          <Stop offset="1" stopColor={end} stopOpacity="0" />
+        </RadialGradient>
+        <LinearGradient id={gradientId} x1="12" x2="52" y1="10" y2="54">
+          <Stop offset="0" stopColor="#f4ffff" />
+          <Stop offset="0.36" stopColor={accent} />
+          <Stop offset="1" stopColor={end} />
+        </LinearGradient>
+      </Defs>
+      <Circle cx="32" cy="32" fill={`url(#${glowId})`} r="31" />
+      {type === 'scores' ? (
+        <>
+          <Path
+            d="M22 15h20v8.7c0 8.6-3.5 13.4-10 15.1-6.5-1.7-10-6.5-10-15.1Z"
+            fill="rgba(255,216,74,0.18)"
+            stroke={`url(#${gradientId})`}
+            strokeLinejoin="round"
+            strokeWidth="3.4"
+          />
+          <Path
+            d="M22 20h-7.1c.2 8 3.1 12.5 8.7 13.5M42 20h7.1c-.2 8-3.1 12.5-8.7 13.5M32 38.8v7.6M24.5 50.5h15"
+            fill="none"
+            stroke={`url(#${gradientId})`}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3.4"
+          />
+          <Path d="M28 20h8" stroke="#fff7ba" strokeLinecap="round" strokeOpacity="0.85" strokeWidth="2" />
+        </>
+      ) : null}
+      {type === 'removeAds' ? (
+        <SvgText
+          fill={`url(#${gradientId})`}
+          fontSize="18"
+          fontWeight="900"
+          textAnchor="middle"
+          x="32"
+          y="38"
+        >
+          ADS
+        </SvgText>
+      ) : null}
+      {type === 'settings' ? (
+        <>
+          <Path
+            d="M36.5 10.5 38.6 16a20 20 0 0 1 4.1 2.4l5.8-1.1 4.4 7.8-4 4.4a20 20 0 0 1 0 5l4 4.4-4.4 7.8-5.8-1.1a20 20 0 0 1-4.1 2.4l-2.1 5.5h-9L25.4 48a20 20 0 0 1-4.1-2.4l-5.8 1.1-4.4-7.8 4-4.4a20 20 0 0 1 0-5l-4-4.4 4.4-7.8 5.8 1.1a20 20 0 0 1 4.1-2.4l2.1-5.5Z"
+            fill="rgba(117,247,255,0.1)"
+            stroke={`url(#${gradientId})`}
+            strokeLinejoin="round"
+            strokeWidth="3.1"
+          />
+          <Circle cx="32" cy="32" fill="rgba(244,255,255,0.2)" r="7.2" />
+          <Circle cx="32" cy="32" fill={accent} fillOpacity="0.42" r="3" />
+        </>
+      ) : null}
+      {type === 'soundOn' || type === 'soundOff' ? (
+        <>
+          <Path
+            d="M13 26h8l12-10v32L21 38h-8Z"
+            fill="rgba(117,247,255,0.16)"
+            stroke={`url(#${gradientId})`}
+            strokeLinejoin="round"
+            strokeWidth="3.2"
+          />
+          {type === 'soundOn' ? (
+            <>
+              <Path d="M39 24c4.2 4.3 4.2 11.7 0 16" fill="none" stroke={`url(#${gradientId})`} strokeLinecap="round" strokeWidth="3" />
+              <Path d="M44.5 18c7.2 7.6 7.2 20.4 0 28" fill="none" stroke={`url(#${gradientId})`} strokeLinecap="round" strokeOpacity="0.72" strokeWidth="2.5" />
+            </>
+          ) : (
+            <Path d="M40 24 52 40M52 24 40 40" stroke={`url(#${gradientId})`} strokeLinecap="round" strokeWidth="3.5" />
+          )}
+        </>
+      ) : null}
+    </Svg>
+  );
+}
+
+function HomeFlyingArrow({
+  delay,
+  impactAngle,
+  levelId,
+  progress,
+  targetRotation,
+  targetCenterX,
+  targetCenterY,
+  targetRadius,
+  travel,
+}: {
+  delay: number;
+  impactAngle: number;
+  levelId: number;
+  progress: SharedValue<number>;
+  targetRotation: SharedValue<number>;
+  targetCenterX: number;
+  targetCenterY: number;
+  targetRadius: number;
+  travel: number;
+}) {
+  const radians = (impactAngle * Math.PI) / 180;
+  const outwardX = Math.sin(radians);
+  const outwardY = -Math.cos(radians);
+  const rotationAtImpact = ((delay + HOME_ARROW_IMPACT_MS) / HOME_TARGET_ROTATION_MS) * 360;
+  const targetLocalImpactAngle = impactAngle - rotationAtImpact;
+  const localImpactRad = ((targetLocalImpactAngle - 90) * Math.PI) / 180;
+  const stuckPinX = targetRadius + Math.cos(localImpactRad) * targetRadius;
+  const stuckPinY = targetRadius + Math.sin(localImpactRad) * targetRadius;
+  const stuckPinStyle = {
+    left: stuckPinX - PIN_W / 2,
+    position: 'absolute' as const,
+    top: stuckPinY - PIN_H / 2,
+    transform: [
+      { rotate: `${targetLocalImpactAngle + 180}deg` },
+      { scale: HOME_ARROW_SCALE },
+    ],
+  };
+
+  const flyingArrowStyle = useAnimatedStyle(() => {
+    const activeTipOffset = (PIN_H / 2) * HOME_ARROW_SCALE;
+    const activeCenterRadius = targetRadius + activeTipOffset;
+    const hitX = targetCenterX + outwardX * activeCenterRadius - PIN_W / 2;
+    const hitY = targetCenterY + outwardY * activeCenterRadius - PIN_H / 2;
+    const startX = hitX + outwardX * travel;
+    const startY = hitY + outwardY * travel;
+    const flight = Math.min(progress.value / 0.24, 1);
+    const opacity = progress.value >= 0.238 || progress.value <= 0.01
+      ? 0
+      : interpolate(progress.value, [0.01, 0.04, 0.238], [0, 1, 1]);
+
+    return {
+      opacity,
+      transform: [
+        { translateX: startX + (hitX - startX) * flight },
+        { translateY: startY + (hitY - startY) * flight },
+        { scale: HOME_ARROW_SCALE },
+        { rotate: `${impactAngle + 180}deg` },
+      ],
+    };
+  });
+
+  const stuckOrbitStyle = useAnimatedStyle(() => {
+    const opacity = progress.value < 0.238 ? 0 : 1;
+
+    return {
+      opacity,
+      transform: [
+        { rotate: `${targetRotation.value}deg` },
+      ],
+    };
+  });
+
+  return (
+    <>
+      <Animated.View pointerEvents="none" style={[styles.homeArrow, flyingArrowStyle]}>
+        <Pin launched levelId={levelId} mode="active" visualZone="learning" />
+      </Animated.View>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.homePinOrbit,
+          {
+            height: targetRadius * 2,
+            left: targetCenterX - targetRadius,
+            top: targetCenterY - targetRadius,
+            width: targetRadius * 2,
+          },
+          stuckOrbitStyle,
+        ]}
+      >
+        <Pin levelId={levelId} mode="placed" style={stuckPinStyle} visualZone="learning" />
+      </Animated.View>
+    </>
+  );
+}
+
+function BlinkPlayIcon({ size }: { size: number }) {
+  const pulse = useSharedValue(1);
+  const glowOpacity = useSharedValue(0.28);
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.035, { duration: 1700, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.99, { duration: 1700, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      true,
+    );
+    glowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.42, { duration: 1700, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.22, { duration: 1700, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      true,
+    );
+  }, [glowOpacity, pulse]);
 
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: 0.18 + pulse.value * 0.34,
-    transform: [{ scale: 1 + pulse.value * 0.018 }],
+    opacity: glowOpacity.value,
+    transform: [{ scale: pulse.value }],
   }));
 
   return (
-    <TouchableOpacity
-      accessibilityLabel={strings.oyna}
-      accessibilityRole="button"
-      activeOpacity={0.82}
-      onPress={onPress}
-      style={[styles.primaryButton, { height }]}
-    >
-      <Animated.View pointerEvents="none" style={[styles.primaryGlow, glowStyle]} />
-      <View style={styles.primaryIconFrame}>
-        <PlayIcon size={32} />
-      </View>
-      <Text style={styles.primaryButtonText}>{strings.oyna}</Text>
-      <View style={styles.primaryChevron}>
-        <ChevronIcon color="#001522" size={22} />
-      </View>
-    </TouchableOpacity>
+    <View pointerEvents="none" style={styles.blinkPlayIcon}>
+      <Animated.View style={[styles.playGlowLayer, glowStyle]}>
+        <Svg height={size} viewBox="0 0 100 100" width={size}>
+          <Defs>
+            <RadialGradient cx="50%" cy="50%" id="playGlowOnly" r="50%">
+              <Stop offset="0" stopColor="#b7ffff" stopOpacity="0.46" />
+              <Stop offset="0.34" stopColor="#19e5ff" stopOpacity="0.28" />
+              <Stop offset="0.72" stopColor="#2a8cff" stopOpacity="0.12" />
+              <Stop offset="1" stopColor="#00aaff" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx="50" cy="50" fill="url(#playGlowOnly)" r="48" />
+        </Svg>
+      </Animated.View>
+      <Svg height={size} viewBox="0 0 100 100" width={size}>
+        <Defs>
+          <LinearGradient id="playInnerGradient" x1="18" x2="82" y1="18" y2="82">
+            <Stop offset="0" stopColor="#f4ffff" />
+            <Stop offset="0.34" stopColor="#75f7ff" />
+            <Stop offset="0.7" stopColor="#19e5ff" />
+            <Stop offset="1" stopColor="#2a8cff" />
+          </LinearGradient>
+          <LinearGradient id="playGlassSurface" x1="24" x2="76" y1="14" y2="86">
+            <Stop offset="0" stopColor="#163b52" stopOpacity="0.96" />
+            <Stop offset="0.48" stopColor="#061a2b" stopOpacity="0.98" />
+            <Stop offset="1" stopColor="#010712" stopOpacity="0.98" />
+          </LinearGradient>
+          <RadialGradient cx="48%" cy="43%" id="playCoreBloom" r="58%">
+            <Stop offset="0" stopColor="#1adfff" stopOpacity="0.24" />
+            <Stop offset="0.52" stopColor="#083456" stopOpacity="0.48" />
+            <Stop offset="1" stopColor="#010714" stopOpacity="1" />
+          </RadialGradient>
+          <LinearGradient id="playArrowFace" x1="35" x2="74" y1="28" y2="69">
+            <Stop offset="0" stopColor="#ffffff" />
+            <Stop offset="0.58" stopColor="#eaffff" />
+            <Stop offset="1" stopColor="#8ffcff" />
+          </LinearGradient>
+        </Defs>
+        <Circle cx="50" cy="50" fill="url(#playCoreBloom)" r="42" />
+        <Circle cx="50" cy="50" fill="url(#playGlassSurface)" r="36.5" />
+        <Circle cx="50" cy="50" fill="none" r="37" stroke="#d8ffff" strokeOpacity="0.54" strokeWidth="1.8" />
+        <Circle cx="50" cy="50" fill="none" r="31" stroke="url(#playInnerGradient)" strokeOpacity="0.72" strokeWidth="2.1" />
+        <Circle cx="50" cy="50" fill="none" r="23.5" stroke="#f4ffff" strokeOpacity="0.1" strokeWidth="1" />
+        <Path
+          d="M 50 13 A 37 37 0 0 1 84 36"
+          fill="none"
+          stroke="#8ffcff"
+          strokeLinecap="round"
+          strokeOpacity="0.7"
+          strokeWidth="3"
+        />
+        <Path
+          d="M 84 65 A 37 37 0 0 1 61 84"
+          fill="none"
+          stroke="#ff9a28"
+          strokeLinecap="round"
+          strokeOpacity="0.72"
+          strokeWidth="3"
+        />
+        <Path
+          d="M 35 84 A 37 37 0 0 1 16 60"
+          fill="none"
+          stroke="#9d4dff"
+          strokeLinecap="round"
+          strokeOpacity="0.64"
+          strokeWidth="3"
+        />
+        <Path
+          d="M 18 41 A 37 37 0 0 1 38 16"
+          fill="none"
+          stroke="#2a8cff"
+          strokeLinecap="round"
+          strokeOpacity="0.5"
+          strokeWidth="2.4"
+        />
+        <Path
+          d="M40 31.5 69.5 50 40 68.5Z"
+          fill="url(#playArrowFace)"
+          stroke="#ffffff"
+          strokeLinejoin="round"
+          strokeWidth="3.4"
+        />
+        <Path
+          d="M40 31.5 69.5 50 40 68.5Z"
+          fill="none"
+          stroke="#45ecff"
+          strokeLinejoin="round"
+          strokeOpacity="0.74"
+          strokeWidth="1.5"
+        />
+        <Path
+          d="M40 31.5 69.5 50 40 50Z"
+          fill="#ffffff"
+          opacity="0.16"
+        />
+        <Path
+          d="M31 31 C39 24 53 21 65 27"
+          fill="none"
+          stroke="#ffffff"
+          strokeLinecap="round"
+          strokeOpacity="0.16"
+          strokeWidth="1.7"
+        />
+      </Svg>
+    </View>
   );
 }
 
-type SecondaryButtonProps = {
-  delay: number;
-  icon: ReactNode;
+function HomeShortcut({
+  buttonSize,
+  icon,
+  label,
+  onPress,
+}: {
+  buttonSize?: number;
+  icon: React.ReactNode;
   label: string;
   onPress: () => void;
-};
-
-function SecondaryButton({ delay, icon, label, onPress }: SecondaryButtonProps) {
-  const pulse = usePulse(delay);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: 0.08 + pulse.value * 0.18,
-  }));
+}) {
+  function handlePress() {
+    sounds.button();
+    onPress();
+  }
 
   return (
     <TouchableOpacity
       accessibilityLabel={label}
       accessibilityRole="button"
       activeOpacity={0.82}
-      onPress={onPress}
-      style={styles.secondaryButton}
+      onPress={handlePress}
+      style={[
+        styles.shortcutButton,
+        buttonSize
+          ? { borderRadius: buttonSize / 2, height: buttonSize, width: buttonSize }
+          : null,
+      ]}
     >
-      <Animated.View pointerEvents="none" style={[styles.secondaryGlow, glowStyle]} />
-      <View style={styles.secondaryIconFrame}>{icon}</View>
-      <Text numberOfLines={1} style={styles.secondaryText}>
-        {label}
-      </Text>
+      {icon}
     </TouchableOpacity>
   );
 }
 
-function usePulse(delay: number) {
-  const pulse = useSharedValue(0);
-
-  useEffect(() => {
-    pulse.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1050, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 1050, easing: Easing.inOut(Easing.sin) }),
-        ),
-        -1,
-        false,
-      ),
-    );
-  }, [delay, pulse]);
-
-  return pulse;
-}
-
 const styles = StyleSheet.create({
-  avatarFrame: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 212, 255, 0.08)',
-    borderColor: '#ffd233',
-    borderRadius: 24,
-    borderWidth: 1.5,
-    height: 46,
-    justifyContent: 'center',
-    marginRight: 10,
-    width: 46,
-  },
   background: {
     flex: 1,
-    height: '100%',
-    width: '100%',
   },
-  brand: {
+  homeTarget: {
+    position: 'absolute',
+  },
+  homeArrow: {
+    height: PIN_H,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: PIN_W,
+  },
+  homePinOrbit: {
+    position: 'absolute',
+  },
+  playerStatsPanel: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  brandKicker: {
-    color: '#75f7ff',
-    fontWeight: '900',
-    letterSpacing: 0,
-    marginTop: 3,
-    textShadowColor: '#001b2f',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  brandRule: {
-    backgroundColor: '#00ff88',
-    borderRadius: 2,
-    height: 4,
-    marginTop: 5,
-    shadowColor: '#00ff88',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 10,
-    width: 126,
-  },
-  brandTitle: {
-    color: '#ffffff',
-    fontWeight: '900',
-    letterSpacing: 0,
-    lineHeight: 43,
-    textShadowColor: '#00d4ff',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 16,
-  },
-  container: {
-    backgroundColor: '#02050d',
-    flex: 1,
-  },
-  currencyIcon: {
-    alignItems: 'center',
-    height: 25,
-    justifyContent: 'center',
-    marginRight: 5,
-    width: 25,
-  },
-  currencyPill: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(2, 12, 29, 0.82)',
-    borderColor: 'rgba(117, 247, 255, 0.28)',
-    borderRadius: 16,
-    borderWidth: 1,
     flexDirection: 'row',
-    minWidth: 82,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    justifyContent: 'space-between',
+    position: 'absolute',
+    zIndex: 20,
   },
-  currencyText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0,
-  },
-  levelText: {
-    color: '#75f7ff',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0,
-    marginTop: 1,
-  },
-  menuShell: {
+  playerStatItem: {
     alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(1, 12, 28, 0.72)',
-    borderColor: 'rgba(0, 212, 255, 0.28)',
-    borderRadius: 24,
+    backgroundColor: 'rgba(2, 18, 42, 0.44)',
+    borderRadius: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    minWidth: 92,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    shadowColor: '#00d4ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
+  },
+  playerStatItemTablet: {
+    borderRadius: 20,
+    minWidth: 128,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  playerStatLeft: {
+    transform: [{ translateX: -4 }],
+  },
+  playerStatRight: {
+    transform: [{ translateX: 4 }],
+  },
+  playerStatTextBlock: {
+    alignItems: 'center',
+    minWidth: 58,
+  },
+  quickIconButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(2, 18, 42, 0.72)',
+    borderColor: 'rgba(117, 247, 255, 0.42)',
+    borderRadius: 21,
     borderWidth: 1,
-    left: '50%',
-    padding: 13,
+    height: 42,
+    justifyContent: 'center',
+    shadowColor: '#00d4ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    width: 42,
+  },
+  socialButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(2, 18, 42, 0.7)',
+    borderColor: 'rgba(117, 247, 255, 0.38)',
+    borderRadius: 21,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: 'center',
     position: 'absolute',
     shadowColor: '#00d4ff',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.28,
-    shadowRadius: 22,
+    shadowRadius: 10,
+    width: 42,
+    zIndex: 20,
   },
-  playerCard: {
+  shortcutPanel: {
     alignItems: 'center',
-    backgroundColor: 'rgba(2, 12, 29, 0.82)',
-    borderColor: 'rgba(0, 212, 255, 0.36)',
-    borderRadius: 17,
+    backgroundColor: 'rgba(2, 18, 42, 0.38)',
+    borderColor: 'rgba(117, 247, 255, 0.22)',
+    borderRadius: 24,
     borderWidth: 1,
-    flexDirection: 'row',
-    minHeight: 60,
-    paddingLeft: 7,
-    paddingRight: 12,
+    bottom: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    position: 'absolute',
     shadowColor: '#00d4ff',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.32,
-    shadowRadius: 10,
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
   },
-  playerCardCompact: {
-    minHeight: 54,
-    transform: [{ scale: 0.94 }],
-  },
-  playerCopy: {
-    width: 94,
-  },
-  primaryButton: {
+  blinkPlayIcon: {
     alignItems: 'center',
-    alignSelf: 'stretch',
-    backgroundColor: '#00b963',
-    borderColor: '#7dffb7',
-    borderRadius: 19,
-    borderWidth: 2,
-    flexDirection: 'row',
     justifyContent: 'center',
-    overflow: 'hidden',
-    shadowColor: '#00ff88',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 29,
-    fontWeight: '900',
-    letterSpacing: 0,
-    textShadowColor: 'rgba(0,0,0,0.36)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
-  },
-  primaryChevron: {
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 15,
-    height: 30,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 18,
-    width: 30,
-  },
-  primaryGlow: {
-    backgroundColor: '#89ffd2',
-    bottom: -10,
-    left: 30,
-    position: 'absolute',
-    right: 30,
-    shadowColor: '#00ff88',
+    shadowColor: '#00d4ff',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
-    shadowRadius: 24,
-    top: -10,
+    shadowRadius: 20,
   },
-  primaryIconFrame: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 23, 37, 0.42)',
-    borderColor: 'rgba(255,255,255,0.78)',
-    borderRadius: 19,
-    borderWidth: 1,
-    height: 42,
-    justifyContent: 'center',
-    left: 16,
+  playGlowLayer: {
     position: 'absolute',
-    width: 48,
   },
-  rankText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 0,
+  playRingLayer: {
+    position: 'absolute',
+  },
+  targetPlayButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    justifyContent: 'center',
+    position: 'absolute',
+    shadowColor: '#8ffcff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.72,
+    shadowRadius: 18,
+    zIndex: 30,
+  },
+  targetNeonBorder: {
+    position: 'absolute',
+    shadowColor: '#00d4ff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.38,
+    shadowRadius: 18,
+  },
+  root: {
+    backgroundColor: '#020615',
+    flex: 1,
+  },
+  secondaryRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 11,
+    justifyContent: 'space-between',
+    width: '100%',
   },
   safeArea: {
     flex: 1,
   },
-  scrim: {
-    backgroundColor: 'rgba(0, 5, 16, 0.24)',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  secondaryButton: {
+  shortcutButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(1, 28, 52, 0.9)',
-    borderColor: 'rgba(0, 212, 255, 0.58)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(2, 18, 42, 0.72)',
+    borderColor: 'rgba(117, 247, 255, 0.42)',
+    borderRadius: 21,
     borderWidth: 1,
-    flex: 1,
-    height: 72,
+    height: 42,
     justifyContent: 'center',
-    minWidth: 0,
-    overflow: 'hidden',
-    paddingHorizontal: 5,
     shadowColor: '#00d4ff',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.28,
     shadowRadius: 10,
+    width: 42,
   },
-  secondaryGlow: {
-    backgroundColor: '#00d4ff',
-    bottom: -18,
-    left: 8,
-    position: 'absolute',
-    right: 8,
-    top: -18,
-  },
-  secondaryGrid: {
-    flexDirection: 'row',
-    gap: 9,
-    marginTop: 11,
-  },
-  secondaryIconFrame: {
-    alignItems: 'center',
-    height: 28,
-    justifyContent: 'center',
-    marginBottom: 5,
-    width: 28,
-  },
-  secondaryText: {
-    color: '#effcff',
-    fontSize: 10,
+  statLabel: {
+    color: '#8ffcff',
+    fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 212, 255, 0.65)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
-  settingsButton: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 212, 255, 0.2)',
-    borderColor: 'rgba(117, 247, 255, 0.36)',
-    borderRadius: 20,
-    borderWidth: 1,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
+  statLabelTablet: {
+    fontSize: 13,
   },
-  shellHeader: {
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    borderColor: 'rgba(117, 247, 255, 0.18)',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 10,
-    paddingVertical: 8,
-  },
-  shellHeaderText: {
-    color: '#bdfbff',
-    fontSize: 12,
+  statValue: {
+    color: '#f4ffff',
+    fontSize: 24,
     fontWeight: '900',
     letterSpacing: 0,
-    marginLeft: 7,
+    lineHeight: 26,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 212, 255, 0.85)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 9,
   },
-  topActions: {
-    alignItems: 'flex-end',
-    gap: 7,
-  },
-  topBar: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 8,
-  },
-  vignetteBottom: {
-    backgroundColor: 'rgba(0, 7, 17, 0.26)',
-    bottom: 0,
-    height: '26%',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-  },
-  vignetteTop: {
-    backgroundColor: 'rgba(0, 5, 16, 0.34)',
-    height: '33%',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  xpFill: {
-    backgroundColor: '#75f7ff',
-    borderRadius: 3,
-    height: '100%',
-    width: '68%',
-  },
-  xpTrack: {
-    backgroundColor: 'rgba(0, 19, 45, 0.92)',
-    borderColor: 'rgba(0, 212, 255, 0.46)',
-    borderRadius: 4,
-    borderWidth: 1,
-    height: 8,
-    marginTop: 5,
-    overflow: 'hidden',
+  statValueTablet: {
+    fontSize: 30,
+    lineHeight: 32,
   },
 });

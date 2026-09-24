@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -9,9 +9,21 @@ import Animated, {
   withTiming,
   SharedValue,
 } from 'react-native-reanimated';
-import { Svg, Ellipse, Circle } from 'react-native-svg';
+import { Svg, Path } from 'react-native-svg';
+import { VisualZone } from '../theme/colors';
 
-const { width, height } = Dimensions.get('window');
+const bandBackgrounds = [
+  { maxLevel: 5, base: '#061728', wash: '#00d4ff', glow: '#5528ff' },
+  { maxLevel: 10, base: '#071c17', wash: '#b8ff3d', glow: '#ffd45a' },
+  { maxLevel: 15, base: '#170d08', wash: '#ff7a00', glow: '#ff3300' },
+  { maxLevel: 20, base: '#071724', wash: '#8cecff', glow: '#3a8cff' },
+  { maxLevel: 25, base: '#12091f', wash: '#cc5cff', glow: '#00d4ff' },
+  { maxLevel: 30, base: '#06182a', wash: '#2aa8ff', glow: '#00eaff' },
+  { maxLevel: 35, base: '#1b0718', wash: '#ff3bbf', glow: '#bf5fff' },
+  { maxLevel: 40, base: '#1a1206', wash: '#ffd35a', glow: '#ff8c00' },
+  { maxLevel: 45, base: '#18080d', wash: '#ff3355', glow: '#ff7a00' },
+  { maxLevel: 50, base: '#070812', wash: '#8b5cff', glow: '#ff8c00' },
+] as const;
 
 // --- Yıldız verileri (render'da değişmez) ---
 
@@ -24,7 +36,7 @@ type StarDef = {
   driftIdx: number | null;   // hangi translateY SV kullanacak
 };
 
-function buildStars(): StarDef[] {
+function buildStars(width: number, height: number): StarDef[] {
   // Deterministic pseudo-random (LCG) — her çağrıda aynı seriyi üretir
   let seed = 42;
   const rand = () => {
@@ -38,7 +50,7 @@ function buildStars(): StarDef[] {
   let twinkleCount = 0;
   let driftCount   = 0;
 
-  for (let i = 0; i < 38; i++) {
+  for (let i = 0; i < 68; i++) {
     const x    = rand() * width;
     const y    = rand() * height;
     const size = 1.5 + rand() * 1.5; // 1.5-3px
@@ -85,7 +97,7 @@ function useTwinkle() {
 }
 
 // --- Drift hook: 3 shared values ---
-function useDrift() {
+function useDrift(height: number) {
   const v0 = useSharedValue(0);
   const v1 = useSharedValue(0);
   const v2 = useSharedValue(0);
@@ -106,35 +118,15 @@ function useDrift() {
   return svs;
 }
 
-// --- Planet rotation: 2 shared values ---
-function usePlanetRot() {
-  const r0 = useSharedValue(0);
-  const r1 = useSharedValue(0);
-
-  React.useEffect(() => {
-    r0.value = withRepeat(
-      withTiming(360, { duration: 14000, easing: Easing.linear }),
-      -1,
-      false,
-    );
-    r1.value = withRepeat(
-      withTiming(360, { duration: 18000, easing: Easing.linear }),
-      -1,
-      false,
-    );
-  }, []);
-
-  return [r0, r1];
-}
-
 // --- Star component ---
 type StarProps = {
   def: StarDef;
+  height: number;
   twinkleSVs: SharedValue<number>[];
   driftSVs: SharedValue<number>[];
 };
 
-function Star({ def, twinkleSVs, driftSVs }: StarProps) {
+function Star({ def, height, twinkleSVs, driftSVs }: StarProps) {
   const twinkleSV = def.twinkleIdx !== null ? twinkleSVs[def.twinkleIdx] : null;
   const driftSV   = def.driftIdx   !== null ? driftSVs[def.driftIdx]     : null;
 
@@ -166,70 +158,76 @@ function Star({ def, twinkleSVs, driftSVs }: StarProps) {
   );
 }
 
-// --- Planet component ---
-type PlanetProps = {
-  rotSV: SharedValue<number>;
-  cx: number;
-  cy: number;
-  r: number;
-  color: string;
+// --- Ana component ---
+type SpaceBackgroundProps = {
+  levelId?: number;
+  visualZone?: VisualZone;
 };
 
-function Planet({ rotSV, cx, cy, r, color }: PlanetProps) {
-  const style = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotSV.value}deg` }],
-  }));
+export default function SpaceBackground({ levelId = 1, visualZone = 'learning' }: SpaceBackgroundProps) {
+  const { width, height } = useWindowDimensions();
+  const stars      = useMemo(() => buildStars(width, height), [height, width]);
+  const twinkleSVs = useTwinkle();
+  const driftSVs   = useDrift(height);
+  const background = getBandBackground(levelId);
 
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={[{ position: 'absolute', left: cx - r, top: cy - r }, style]}
-    >
-      <Svg width={r * 2} height={r * 2}>
-        <Circle cx={r} cy={r} r={r} fill={color} />
-        {/* Halka */}
-        <Ellipse
-          cx={r}
-          cy={r}
-          rx={r * 1.55}
-          ry={r * 0.35}
-          fill="none"
-          stroke={color}
-          strokeWidth={1.5}
-          opacity={0.3}
-        />
-      </Svg>
-    </Animated.View>
+    <View style={[styles.root, { backgroundColor: background.base }]} pointerEvents="none">
+      <View style={[styles.zoneWash, { backgroundColor: background.wash }]} />
+      <View style={[styles.bottomGlow, { backgroundColor: background.glow }]} />
+      <View style={styles.moon}>
+        <Svg width={56} height={56} viewBox="0 0 56 56">
+          <Path
+            d="M34 8C22 12 14 23 16 35c2 11 12 18 23 16-8-4-13-12-13-21 0-9 3-17 8-22Z"
+            fill="#fff3b0"
+            opacity={0.95}
+          />
+        </Svg>
+      </View>
+      {stars.map((def, i) => (
+        <Star key={i} def={def} height={height} twinkleSVs={twinkleSVs} driftSVs={driftSVs} />
+      ))}
+    </View>
   );
 }
 
-// --- Ana component ---
-export default function SpaceBackground() {
-  const stars      = useMemo(buildStars, []);
-  const twinkleSVs = useTwinkle();
-  const driftSVs   = useDrift();
-  const [rot0, rot1] = usePlanetRot();
-
-  return (
-    <View style={styles.root} pointerEvents="none">
-      {stars.map((def, i) => (
-        <Star key={i} def={def} twinkleSVs={twinkleSVs} driftSVs={driftSVs} />
-      ))}
-      {/* Gezegen 1 — sol üst, biraz taşmış */}
-      <Planet rotSV={rot0} cx={-8}        cy={80}          r={20} color="#3d1a6e" />
-      {/* Gezegen 2 — sağ alt, biraz taşmış */}
-      <Planet rotSV={rot1} cx={width + 5} cy={height - 90} r={13} color="#8b2500" />
-    </View>
-  );
+function getBandBackground(levelId: number) {
+  return bandBackgrounds.find((band) => levelId <= band.maxLevel) ?? bandBackgrounds[bandBackgrounds.length - 1];
 }
 
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#0d0d1a',
-    zIndex: -1,
+    overflow: 'hidden',
   },
   star: {
     position: 'absolute',
+  },
+  moon: {
+    opacity: 0.86,
+    position: 'absolute',
+    right: 24,
+    shadowColor: '#fff3b0',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    top: 76,
+  },
+  zoneWash: {
+    bottom: 0,
+    left: 0,
+    opacity: 0.08,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  bottomGlow: {
+    borderRadius: 260,
+    bottom: -180,
+    height: 310,
+    left: -70,
+    opacity: 0.1,
+    position: 'absolute',
+    right: -70,
   },
 });

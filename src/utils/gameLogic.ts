@@ -46,7 +46,7 @@ export function createLevelState(requiredPins: number, initialPins: number[] = [
     streak: 0,
     placedPins: initialPins.map(normalizeAngle),
     remainingPins: requiredPins,
-    lives: 3,
+    lives: 1,
   };
 }
 

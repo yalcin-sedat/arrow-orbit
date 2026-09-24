@@ -32,3 +32,31 @@ export const colors = {
   heartFull:     '#ff3355',
   heartEmpty:    'rgba(255,255,255,0.2)',
 } as const;
+
+export const zoneColors = {
+  learning:   { primary: '#00C8FF', accent: '#0A1A2F' },
+  reward:     { primary: '#00E87A', accent: '#FFD700' },
+  risk:       { primary: '#FF7A00', accent: '#FF3300' },
+  chaos:      { primary: '#AA00FF', accent: '#FF0055' },
+  final:      { primary: '#E8E8E8', accent: '#C0C0C0' },
+  prestige:   { primary: '#0A0A0A', accent: '#FFD700' },
+} as const;
+
+export const feedbackColors = {
+  fail:          '#FF2020',
+  hitSpark:      '#FFFFFF',
+  levelComplete: '#FFD700',
+  bossComplete:  '#00C8FF',
+  heartPickup:   '#00E87A',
+} as const;
+
+export type VisualZone = keyof typeof zoneColors;
+
+export function getVisualZone(levelId: number): VisualZone {
+  if (levelId <= 8) return 'learning';
+  if (levelId <= 15) return 'reward';
+  if (levelId <= 25) return 'risk';
+  if (levelId <= 35) return 'chaos';
+  if (levelId <= 45) return 'final';
+  return 'prestige';
+}

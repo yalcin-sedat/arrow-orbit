@@ -39,3 +39,15 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Tasarım kaynakları / önizlemeler — oyunda kullanılmıyor, diskte tutuluyor (AUDIT.md Adım 0)
+/assets/target_assets/clean_targets/
+/assets/target_assets/generated_samples/
+/assets/target_assets/generated_sources/
+/assets/target_assets/generated_targets_tmp/
+/assets/target_assets/level_variants_preview/
+/assets/target_assets/level_variants_simple_preview/
+/assets/target_assets/png_optimized_768/
+/assets/target_assets/targets/
+/assets/target_assets/webp_light_512/
+/simulator-screenshot.png

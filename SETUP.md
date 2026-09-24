@@ -1,41 +1,40 @@
-# SETUP.md — Sıfırdan Kurulum
+# SETUP.md — Kurulum
 
-> Adımları sırayla uygula. Reanimated 4 kurulumu kritik — atlanırsa
-> "Exception in HostFunction" hatası alınır.
-
-> Not: Projenin yeni yönü bayrak-harita eşleştirme değil, dönen hedefe pin/ok
-> saplama arcade oyunudur. Bayrak ve harita asset'leri ana mekanik için şart
-> değil; skin, tema ve görsel kimlik için kullanılabilir.
+> Reanimated 4 kurulumu kritik. Babel plugin yanlışsa animasyon tarafında runtime hatası alınır.
 
 ## 1. Proje Oluştur
 
 ```bash
-npx create-expo-app@latest flag-striker -t expo-template-blank-typescript
-cd flag-striker
+npx create-expo-app@latest arrow-orbit -t expo-template-blank-typescript
+cd arrow-orbit
 ```
+
+Bu repository'nin klasör adı geçmişten dolayı farklı olabilir; uygulama kimliği dokümanlarda **Arrow Orbit** olarak ele alınır.
 
 ## 2. Çekirdek Kütüphaneler
 
-ÖNEMLİ: `npm install` DEĞİL, `npx expo install` (Expo uyumlu sürümleri seçer).
+ÖNEMLİ: `npm install` yerine Expo uyumlu sürümler için `npx expo install` kullan.
 
 ```bash
-# Animasyon (Reanimated 4 + ZORUNLU worklets)
+# Animasyon
 npx expo install react-native-reanimated react-native-worklets
 
 # Dokunma
 npx expo install react-native-gesture-handler
 
-# Vektör çizim (çark, glow, arka plan)
+# Vektör çizim
 npx expo install react-native-svg
 
 # Kalıcı veri
 npx expo install @react-native-async-storage/async-storage
+
+# Ses ve haptic
+npx expo install expo-av expo-haptics
 ```
 
-## 3. Babel Yapılandırması (KRİTİK)
+## 3. Babel Yapılandırması
 
-`babel.config.js` — Reanimated 4'te plugin **react-native-worklets/plugin**
-(eski `react-native-reanimated/plugin` DEĞİL). EN SONDA olmalı.
+`babel.config.js` içinde Reanimated 4 için plugin **react-native-worklets/plugin** olmalı ve en sonda yer almalı.
 
 ```js
 module.exports = function (api) {
@@ -49,11 +48,14 @@ module.exports = function (api) {
 
 ## 4. Gesture Handler
 
-`App.tsx`'in EN ÜSTÜNE:
+`App.tsx`'in en üstünde:
+
 ```ts
 import 'react-native-gesture-handler';
 ```
-Kök component'i sar:
+
+Kök component:
+
 ```tsx
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -66,58 +68,82 @@ export default function App() {
 }
 ```
 
-## 5. Görsel Asset'leri İndir
+## 5. Çalıştır
 
-### Bayraklar (PNG, ISO kodlu, opsiyonel skin/tema)
-- **Flagpedia:** https://flagpedia.net/download/icons — tüm ülkeler tek paket.
-- veya **FamFamFam Flag Icons** — atıfsız, serbest, ISO kodlu (tr.png, de.png...).
-- İndir → `assets/flags/` klasörüne koy.
+Babel veya native modül değişikliğinden sonra cache temizleyerek başlat:
 
-### Haritalar (PNG silüet, ISO kodlu, opsiyonel hedef rozeti/tema)
-- **mapsicon (GitHub):** https://github.com/djaiss/mapsicon
-- Siyah silüet, ISO kodlu, hafif (~12 KB). İstediğin boyutu seç.
-- İndir → `assets/maps/` klasörüne koy.
-- Not: Siyah silüet kodda `tintColor` ile renklendirilir; ayrı renkli dosya gerekmez.
-
-### LİSANS KONTROLÜ (ZORUNLU)
-Her iki setin de lisansını doğrula: "ticari kullanım" + "atıf gerekmez".
-- Bayraklar zaten kamuya açık; ikon tasarım lisansına bak.
-- mapsicon → repo'daki LICENSE dosyasını oku.
-
-## 6. Çalıştır (cache temizleyerek)
-
-Babel değişikliğinden sonra MUTLAKA `-c`:
 ```bash
 npx expo start -c
 ```
-Telefonda Expo Go ile QR tara, veya `i` / `a`.
 
-## 7. Git (Önemli)
+Telefonda Expo Go ile QR tara veya simülatör için `i` / `a` kullan.
+
+## 6. Doğrulama
 
 ```bash
-git init
-git add .
-git commit -m "İlk kurulum: Expo + Reanimated + SVG + asset"
+npx expo install --fix
+npx tsc --noEmit
 ```
-Her aşama bitince:
+
+## 7. Firebase Global Skor
+
+Global skor için Firebase Anonymous Auth + Firestore kullanılır. Kullanıcı oyun içinde yalnızca avatar ve isim seçer; Firebase kimliği arka planda anonim açılır.
+
+Kurulum:
+
 ```bash
-git add .
-git commit -m "Aşama X tamamlandı: <açıklama>"
+npm install firebase
+cp .env.example .env.local
+```
+
+`.env.local` içine Firebase Web App config değerlerini gir:
+
+```bash
+EXPO_PUBLIC_FIREBASE_API_KEY=
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+EXPO_PUBLIC_FIREBASE_APP_ID=
+```
+
+Firestore veri modeli:
+
+```text
+players/{uid}
+  username
+  avatarId
+  highScore
+  highestUnlockedLevel
+  updatedAt
+```
+
+Scoreboard `players` koleksiyonunu `highScore` alanına göre azalan sıralayıp top 20 olarak okur. Aynı oturumda kısa süreli memory cache kullanılır; skor/profil sync sonrası cache temizlenir.
+
+Başlangıç Firestore rule önerisi:
+
+```text
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /players/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
 ```
 
 ## Sık Karşılaşılan Hatalar
 
 | Hata | Çözüm |
 |---|---|
-| `Exception in HostFunction: <unknown>` | Babel plugin `react-native-worklets/plugin` mi? `npx expo start -c` |
+| `Exception in HostFunction: <unknown>` | Babel plugin `react-native-worklets/plugin` mı? Sonra `npx expo start -c` |
 | `Cannot find module 'babel-preset-expo'` | `npx expo install babel-preset-expo` |
-| `Project is incompatible with this version of Expo Go` | Expo Go'yu güncelle veya iOS Simulator kullan |
-| Beyaz ekran / "App entry not found" | Terminaldeki kırmızı hatayı oku (import/syntax) |
-| PNG görünmüyor | `require()` yolu doğru mu? Dinamik yol için asset map objesi kullan |
+| `Project is incompatible with this version of Expo Go` | Expo Go'yu güncelle veya simulator/dev build kullan |
+| Beyaz ekran / "App entry not found" | Terminaldeki import/syntax hatasını oku |
 | Paket sürüm uyarısı | `npx expo install --fix` |
 
-## Doğrulama
-```bash
-npx expo install --fix
-npx tsc --noEmit
-```
+## Asset Notu
+
+Oyun objeleri ve UI SVG/View ile çizilir. Ses dosyaları dışında zorunlu görsel asset yoktur. Yeni görsel asset eklenecekse ticari kullanım lisansı net olmalıdır.

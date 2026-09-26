@@ -13,9 +13,9 @@ import GameScreen    from './src/screens/GameScreen';
 import GameOverScreen from './src/screens/GameOverScreen';
 import LevelScreen from './src/screens/LevelScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
-import RemoveAdsScreen from './src/screens/RemoveAdsScreen';
 import ScoreboardScreen from './src/screens/ScoreboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import { LEVELS } from './src/data/levels';
 import { syncHighScoreToCloud, syncPlayerProfileToCloud } from './src/services/playerCloud';
 import {
   PlayerProfile,
@@ -27,7 +27,7 @@ import {
   saveHighestUnlockedLevel,
 } from './src/utils/storage';
 
-type Screen = 'home' | 'levels' | 'game' | 'gameover' | 'profileSetup' | 'removeAds' | 'scoreboard' | 'settings';
+type Screen = 'home' | 'levels' | 'game' | 'gameover' | 'profileSetup' | 'scoreboard' | 'settings';
 type ProfileSetupReturnScreen = 'levels' | 'settings';
 type GoogleMobileAdsModule = {
   BannerAd: React.ComponentType<{
@@ -41,6 +41,11 @@ type GoogleMobileAdsModule = {
 };
 
 declare const require: (name: string) => unknown;
+
+// Test amaçlı: dev build'de tüm leveller açık; release'te otomatik kapalı.
+// Sadece level seçim ekranındaki görünüm/seçilebilirlik bypass edilir;
+// kayıtlı highestUnlockedLevel storage değeri değişmez.
+const DEV_UNLOCK_ALL_LEVELS = __DEV__;
 
 let cachedAdsModule: GoogleMobileAdsModule | null | undefined;
 
@@ -107,7 +112,6 @@ export default function App() {
     setProfileSetupReturnScreen('levels');
     setScreen('profileSetup');
   }
-  function handleRemoveAds()                                    { setScreen('removeAds'); }
   function handleScoreboard()                                   { setScreen('scoreboard'); }
   function handleSettings()                                     { setScreen('settings'); }
   function handleSelectLevel(levelId: number)                  {
@@ -216,7 +220,6 @@ export default function App() {
         <HomeScreen
           bestScore={highScore}
           highestLevel={highestUnlockedLevel}
-          onRemoveAds={handleRemoveAds}
           onPlay={handlePlay}
           onScoreboard={handleScoreboard}
           onSettings={handleSettings}
@@ -230,10 +233,6 @@ export default function App() {
           onBack={handleHome}
           playerProfile={playerProfile}
         />
-      )}
-
-      {screen === 'removeAds' && (
-        <RemoveAdsScreen onBack={handleHome} />
       )}
 
       {screen === 'profileSetup' && (
@@ -258,7 +257,9 @@ export default function App() {
       {screen === 'levels' && (
         <LevelScreen
           focusedLevelId={runScoringEnabled ? highestUnlockedLevel : selectedLevelId}
-          highestUnlockedLevel={highestUnlockedLevel}
+          highestUnlockedLevel={
+            DEV_UNLOCK_ALL_LEVELS ? LEVELS[LEVELS.length - 1].id : highestUnlockedLevel
+          }
           onBack={handleHome}
           onSelectLevel={handleSelectLevel}
         />

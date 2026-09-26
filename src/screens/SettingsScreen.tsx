@@ -66,10 +66,6 @@ export default function SettingsScreen({ onBack, onEditProfile, playerProfile }:
     Alert.alert('Arrow Orbit', `${title} bağlantısı yayın hazırlığında eklenecek.`);
   }
 
-  function handleRestore() {
-    Alert.alert('Arrow Orbit', 'Satın alma geri yükleme yayın sürümünde aktif olacak.');
-  }
-
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea}>
@@ -109,9 +105,6 @@ export default function SettingsScreen({ onBack, onEditProfile, playerProfile }:
               style={styles.linkButton}
             >
               <Text style={styles.linkText}>{strings.terms.toUpperCase()}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.78} onPress={handleRestore} style={styles.linkButton}>
-              <Text style={styles.linkText}>{strings.restore.toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

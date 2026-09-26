@@ -21,7 +21,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
 import Pin, { PIN_H, PIN_W } from '../components/Pin';
 import { strings } from '../data/strings';
 import { sounds } from '../utils/sounds';
@@ -39,7 +39,6 @@ type HomeScreenProps = {
   bestScore: number;
   highestLevel: number;
   onPlay: () => void;
-  onRemoveAds: () => void;
   onScoreboard: () => void;
   onSettings: () => void;
 };
@@ -48,7 +47,6 @@ export default function HomeScreen({
   bestScore,
   highestLevel,
   onPlay,
-  onRemoveAds,
   onScoreboard,
   onSettings,
 }: HomeScreenProps) {
@@ -390,12 +388,6 @@ export default function HomeScreen({
               />
               <HomeShortcut
                 buttonSize={controlSize}
-                icon={<HomeMenuIcon size={menuIconSize} type="removeAds" />}
-                label="NO ADS"
-                onPress={onRemoveAds}
-              />
-              <HomeShortcut
-                buttonSize={controlSize}
                 icon={<HomeMenuIcon size={menuIconSize} type={soundEnabled ? 'soundOn' : 'soundOff'} />}
                 label="SOUND"
                 onPress={handleToggleSound}
@@ -508,26 +500,22 @@ function HomeMenuIcon({
   type,
 }: {
   size?: number;
-  type: 'removeAds' | 'scores' | 'settings' | 'soundOff' | 'soundOn';
+  type: 'scores' | 'settings' | 'soundOff' | 'soundOn';
 }) {
   const accent = type === 'scores'
     ? '#ffd84a'
-    : type === 'removeAds'
-      ? '#75f7ff'
-      : type === 'settings'
+    : type === 'settings'
+      ? '#8ffcff'
+      : type === 'soundOn'
         ? '#8ffcff'
-        : type === 'soundOn'
-          ? '#8ffcff'
-          : '#ff6b8f';
+        : '#ff6b8f';
   const end = type === 'scores'
     ? '#ff9a28'
-    : type === 'removeAds'
-      ? '#00ff88'
-      : type === 'settings'
+    : type === 'settings'
+      ? '#00d4ff'
+      : type === 'soundOn'
         ? '#00d4ff'
-        : type === 'soundOn'
-          ? '#00d4ff'
-          : '#8b4dff';
+        : '#8b4dff';
   const gradientId = `homeMenuIcon-${type}`;
   const glowId = `homeMenuGlow-${type}`;
 
@@ -565,18 +553,6 @@ function HomeMenuIcon({
           />
           <Path d="M28 20h8" stroke="#fff7ba" strokeLinecap="round" strokeOpacity="0.85" strokeWidth="2" />
         </>
-      ) : null}
-      {type === 'removeAds' ? (
-        <SvgText
-          fill={`url(#${gradientId})`}
-          fontSize="18"
-          fontWeight="900"
-          textAnchor="middle"
-          x="32"
-          y="38"
-        >
-          ADS
-        </SvgText>
       ) : null}
       {type === 'settings' ? (
         <>

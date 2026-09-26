@@ -288,6 +288,11 @@ export default function GameScreen({
   }, [exitConfirmVisible, levelIdx, level.direction, level.rotationDuration, level.speedPattern]);
 
   useEffect(() => {
+    // NOT: Bu interval yalnızca görsel/kozmetik amaçlıdır (örn. kalp pickup
+    // animasyonunun başlangıç ekran konumu). 16ms'lik JS thread polling'i
+    // isabet/çarpışma kararı için KULLANILMAMALI — bayat değer döndürebilir.
+    // Kesin isabet açısı `handleTap` içinde withTiming bitiş worklet'inde
+    // UI thread'de okunup `resolveThrow`'a parametre olarak geçirilir.
     const interval = setInterval(() => {
       rotationRef.current = targetRotation.value % 360;
     }, 16);
@@ -454,6 +459,8 @@ export default function GameScreen({
     return `${special.type}-${special.angle}-${index}`;
   }
 
+  // İsabet kararı `resolveThrow`'dan gelen kesin impactAngle ile alınır (rotationRef değil);
+  // böylece yıldız/kalp isabeti de asıl çarpışma kontrolüyle aynı açıyı kullanır.
   function findHitSpecial(impactAngle: number) {
     const specials = levelRef.current.specialObjects ?? [];
     return specials
@@ -478,6 +485,8 @@ export default function GameScreen({
     setHeartPickups((prev) => prev.filter((pickup) => pickup.id !== id));
   }
 
+  // Sadece görsel: kalp pickup animasyonunun başlangıç ekran konumu.
+  // İsabet kararı için kullanılmaz, o yüzden bayat rotationRef burada sorun değil.
   function getSpecialScreenPosition(angle: number) {
     const screenAngle = angle + rotationRef.current;
     const radians = ((screenAngle - 90) * Math.PI) / 180;
@@ -558,11 +567,13 @@ export default function GameScreen({
     return state;
   }
 
-  function resolveThrow(throwId: number) {
+  function resolveThrow(throwId: number, exactRotation: number) {
     if (throwId !== throwIdRef.current || !pinLaunchedRef.current) return;
 
     const currentLevel = levelRef.current;
-    const impactAngle = getImpactAngle(rotationRef.current);
+    // Kesin isabet açısı: withTiming bitiş worklet'inde UI thread'de okunan
+    // targetRotation.value kullanılır (mod 360 normalizasyonu getImpactAngle içinde yapılır).
+    const impactAngle = getImpactAngle(exactRotation);
     const collided = willCollideWithPins(
       impactAngle,
       gameStateRef.current.placedPins,
@@ -690,7 +701,9 @@ export default function GameScreen({
       },
       (finished) => {
         if (finished) {
-          runOnJS(resolveThrow)(throwId);
+          // Ok'un hedefe değdiği tam anda UI thread'de rotasyonu oku;
+          // JS thread'deki 16ms polling'e güvenme (bayat değer verir).
+          runOnJS(resolveThrow)(throwId, targetRotation.value);
         }
       },
     );

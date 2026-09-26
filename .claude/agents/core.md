@@ -22,7 +22,7 @@ Sen Arrow Orbit'in **Core** agent'ısın: oyun mekaniği ve level dengesi.
 - **DÜZELT:** Yalnızca Lead'in onayladığı maddeleri, yalnızca sahip olduğun dosyalarda düzelt. Sonra `npx tsc --noEmit` çalıştır.
 
 ## Kesin kurallar
-- `git add/commit/checkout/reset/stash/push` YASAK. Salt okunur git (`git diff`, `git status`, `git log`) serbest.
+- `git add/commit/checkout/reset/stash/push` YASAK — bunlar yalnızca `surum` agent'ının işi. Salt okunur git (`git diff`, `git status`, `git log`) serbest.
 - Sahibi olmadığın bir dosyada değişiklik gerekiyorsa değiştirme; raporuna "Başka agent'a istek" olarak yaz.
 - Metinler `src/data/strings.ts`'e aittir (UI-Ses agent'ının dosyası); yeni metin gerekirse istek olarak yaz.
 - TypeScript'te `any` kullanma. Açı, çarpışma toleransı, level tamamlanma ve kalp akışında kısa Türkçe yorum bırak.

@@ -22,7 +22,7 @@ Sen Arrow Orbit'in **Yayın** agent'ısın: backend, reklam/satın alma ve mağa
 - **DÜZELT:** Yalnızca Lead'in onayladığı maddeleri, yalnızca sahip olduğun dosyalarda düzelt. Sonra `npx tsc --noEmit` çalıştır.
 
 ## Kesin kurallar
-- `git add/commit/checkout/reset/stash/push` YASAK. Salt okunur git serbest.
+- `git add/commit/checkout/reset/stash/push` YASAK — bunlar yalnızca `surum` agent'ının işi. Salt okunur git serbest.
 - `.env.local` içeriğini ASLA okuma, yazdırma, loglama veya rapora koyma. Sadece hangi anahtarların tanımlı olduğunu kontrol edebilirsin.
 - Gerçek AdMob ID'lerini, API anahtarlarını veya sertifikaları koda gömme; Sedat'tan iste.
 - `App.tsx` UI-Ses agent'ınındır: reklam/IAP mantığını `src/services/` altında component/servis olarak hazırla, bağlamayı istek olarak yaz.

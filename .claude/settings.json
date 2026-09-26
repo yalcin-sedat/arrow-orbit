@@ -1,5 +1,48 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "permissions": {
+    "disableBypassPermissionsMode": "disable",
+    "ask": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git remote add *)",
+      "Bash(git remote set-url *)",
+      "Bash(git remote remove *)",
+      "Bash(git remote rename *)",
+      "Bash(git reset *)",
+      "Bash(git revert *)",
+      "Bash(git rebase *)",
+      "Bash(git merge *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git restore *)",
+      "Bash(git stash *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch -D *)",
+      "Bash(git tag *)",
+      "Bash(git clean *)",
+      "Bash(gh repo *)",
+      "Bash(gh pr *)",
+      "Bash(gh release *)",
+      "Bash(gh api *)",
+      "Bash(gh auth *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
+      "Bash(git push --mirror*)",
+      "Bash(git push * --mirror*)",
+      "Bash(git push * --delete *)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh repo archive*)",
+      "Read(.env.local)"
+    ]
   }
 }

@@ -24,7 +24,7 @@ Sen Arrow Orbit'in **UI-Ses** agent'ısın: ekranlar, oyuncu deneyimi, ses ve ay
 - **DÜZELT:** Yalnızca Lead'in onayladığı maddeleri, yalnızca sahip olduğun dosyalarda düzelt. Sonra `npx tsc --noEmit` çalıştır.
 
 ## Kesin kurallar
-- `git add/commit/checkout/reset/stash/push` YASAK. Salt okunur git serbest.
+- `git add/commit/checkout/reset/stash/push` YASAK — bunlar yalnızca `surum` agent'ının işi. Salt okunur git serbest.
 - Sahibi olmadığın bir dosyada değişiklik gerekiyorsa değiştirme; raporuna "Başka agent'a istek" olarak yaz.
 - Reklam ve satın alma mantığı Yayın agent'ına aittir; App.tsx'e yalnızca onun hazırladığı component'i bağlarsın.
 - Yeni UI metinlerini `strings.ts`'e ekle; hardcoded metin bırakma. `any` kullanma.

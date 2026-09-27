@@ -1,0 +1,94 @@
+rules_version = '2';
+
+// Arrow Orbit — Firestore güvenlik kuralları.
+// Kaynak: src/services/playerCloud.ts (okuma/yazma alanları), src/utils/gameLogic.ts,
+// src/screens/GameScreen.tsx (skor üretimi), src/data/levels.ts, src/data/playerAvatars.ts.
+//
+// MAX_HIGH_SCORE türetimi (50 level, tek oturumda ölmeden bitirilirse teorik üst sınır):
+//   - Pin başına +1  (applySafeHit)                → sum(requiredPins, L1..L50) = 430
+//   - Yıldız bonusu +3/yıldız (STAR_BONUS_SCORE)     → toplam 68 yıldız × 3        = 204
+//   - Level tamamlama bonusu: levelId + zorluk bonusu
+//       levelId toplamı (1..50)                                                    = 1275
+//       zorluk bonusu: L30-44 (+5 × 15 level) + L45-50 (+10 × 6 level)             = 135
+//   - Perfect streak bonusu +5 / her 5 ardışık isabet (PERFECT_STREAK_COUNT)
+//       en fazla floor(430/5) = 86 kez                                             = 430
+//   Teorik tavan = 430 + 204 + 1275 + 135 + 430 = 2474.
+//   Güvenlik marjı ile MAX_HIGH_SCORE = 3000 (yayin agent raporunda gerekçelendirildi).
+//
+// highestUnlockedLevel: 1..50 (LEVELS dizisi 50 sabit level). Monotonluk/artış-adımı kuralı
+// KASITLI OLARAK eklenmedi: playerCloud.ts highScore ve highestUnlockedLevel'i tek setDoc(merge)
+// ile yazıyor ve başarısız sync'ler sessizce yutuluyor (catch(() => {}), retry yok). Bir sync ağ
+// hatasıyla kaçarsa yerel değer bulutun +2+ önüne geçebilir; o andan sonra "+1 sınırı" tüm sonraki
+// yazımları (highScore dahil, aynı setDoc çağrısında) kalıcı olarak kilitler. Ayrıca hile önleme
+// değeri düşük: istemci art arda +1 yazarak aynı sonuca ulaşır. Bu yüzden sadece tip/aralık
+// kontrolü var; rollback (App.tsx handleStreakRollback, AUDIT 3.2) değeri serbestçe düşürebilir.
+// avatarId: src/data/playerAvatars.ts PLAYER_AVATARS id listesiyle eşleşmeli.
+// username: ProfileSetupScreen.tsx — 3..14 karakter (cleanedName.slice(0, 14), canContinue >= 3).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function MAX_HIGH_SCORE() {
+      return 3000;
+    }
+
+    function isValidAvatarId(value) {
+      return value in ['nova', 'bolt', 'pulse', 'flare', 'comet', 'void'];
+    }
+
+    function isValidPlayerDoc(data) {
+      return data.keys().hasOnly(['avatarId', 'highScore', 'highestUnlockedLevel', 'uid', 'updatedAt', 'username'])
+        && data.keys().hasAll(['avatarId', 'highScore', 'highestUnlockedLevel', 'uid', 'updatedAt', 'username'])
+        && data.avatarId is string
+        && isValidAvatarId(data.avatarId)
+        && data.highScore is int
+        && data.highScore >= 0
+        && data.highestUnlockedLevel is int
+        && data.highestUnlockedLevel >= 1
+        && data.uid is string
+        && data.updatedAt is timestamp
+        && data.username is string
+        && data.username.size() >= 3
+        && data.username.size() <= 14;
+    }
+
+    match /players/{uid} {
+      // Skor tablosu herkese açık değil; sadece oturum açmış (anonim dahil) kullanıcılar okuyabilir.
+      // Leaderboard sorgusu koleksiyon genelinde (orderBy highScore, limit N) çalıştığı için
+      // "read" (get + list) izni gerekiyor.
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && isValidPlayerDoc(request.resource.data)
+        && request.resource.data.uid == uid
+        && request.resource.data.highScore <= MAX_HIGH_SCORE()
+        && request.resource.data.highestUnlockedLevel <= 50
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && isValidPlayerDoc(request.resource.data)
+        && request.resource.data.uid == uid
+        && resource.data.uid == uid
+        && request.resource.data.updatedAt == request.time
+        // highScore sadece artabilir (veya aynı kalabilir); tek üst sınır MAX_HIGH_SCORE.
+        // Not: tek bir senkronizasyon, tüm oturumun (50 levele kadar) kümülatif skorunu
+        // taşıyabildiği için (bkz. App.tsx handleGameOver) ek bir "tek yazımda artış" sınırı
+        // eklenmedi — aksi halde tek oturumda 50 level bitiren gerçek bir oyuncu engellenir.
+        && request.resource.data.highScore >= resource.data.highScore
+        && request.resource.data.highScore <= MAX_HIGH_SCORE()
+        // highestUnlockedLevel: yalnızca tip/aralık kontrolü (yukarıdaki gerekçe yorumuna bakın).
+        // Monotonluk veya artış-adımı sınırı kasıtlı olarak yok.
+        && request.resource.data.highestUnlockedLevel <= 50;
+
+      // Hesap/veri silme (AUDIT 6.8): kullanıcı yalnızca kendi dokümanını silebilir.
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Tanımlanmamış tüm yollar reddedilir.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

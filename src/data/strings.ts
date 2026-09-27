@@ -41,7 +41,6 @@ export const strings = {
   sound:        'Sound',
   vibration:    'Vibration',
   leftHand:     'Left Hand',
-  music:        'Music',
   haptics:      'Haptics',
   reducedMotion:'Reduced Motion',
   screenFlash:  'Screen Flash',

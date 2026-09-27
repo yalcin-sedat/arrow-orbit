@@ -15,7 +15,6 @@ export type PlayerProfile = {
 
 export type AppSettings = {
   hapticsEnabled: boolean;
-  musicEnabled: boolean;
   reducedMotionEnabled: boolean;
   screenFlashEnabled: boolean;
   soundEnabled: boolean;
@@ -23,7 +22,6 @@ export type AppSettings = {
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   hapticsEnabled: true,
-  musicEnabled: true,
   reducedMotionEnabled: false,
   screenFlashEnabled: true,
   soundEnabled: true,

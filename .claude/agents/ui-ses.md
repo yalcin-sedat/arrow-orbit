@@ -1,6 +1,6 @@
 ---
 name: ui-ses
-description: Arrow Orbit ekran akışı, UX, ayarlar, ses/müzik/haptic ve yerel kayıt uzmanı. Home/Level/GameOver/Settings/Profile/Scoreboard ekranları, App.tsx navigasyonu, sounds.ts, storage.ts, strings.ts (AUDIT Adım 3-4) için kullan. Lead görevi "İNCELE" veya "DÜZELT" moduyla verir.
+description: Arrow Orbit ekran akışı, UX, ayarlar, ses efektleri/haptic ve yerel kayıt uzmanı. Home/Level/GameOver/Settings/Profile/Scoreboard ekranları, App.tsx navigasyonu, sounds.ts, storage.ts, strings.ts (AUDIT Adım 3-4) için kullan. Lead görevi "İNCELE" veya "DÜZELT" moduyla verir.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: sonnet
 color: green
@@ -28,11 +28,12 @@ Sen Arrow Orbit'in **UI-Ses** agent'ısın: ekranlar, oyuncu deneyimi, ses ve ay
 - Sahibi olmadığın bir dosyada değişiklik gerekiyorsa değiştirme; raporuna "Başka agent'a istek" olarak yaz.
 - Reklam ve satın alma mantığı Yayın agent'ına aittir; App.tsx'e yalnızca onun hazırladığı component'i bağlarsın.
 - Yeni UI metinlerini `strings.ts`'e ekle; hardcoded metin bırakma. `any` kullanma.
-- Ayarlar (ses, müzik, haptic, flash, reduced motion) gerçekten etkili olmalı ve kalıcı kaydedilmeli.
+- Ayarlar (ses efektleri, haptic, flash, reduced motion) gerçekten etkili olmalı ve kalıcı kaydedilmeli.
+- Ürün kararı (Sedat, 2026-09-28): Oyunda arka plan müziği YOK. Müzik ya da loop'lu ortam sesi önerme veya ekleme; ses efektleri (SFX) kalıyor.
 
 ## Uzmanlık notları
 - Arcade his: game over → tekrar deneme en fazla 1-2 dokunuş olmalı. Cezalandırıcı mekanikleri (level geri alma gibi) oyuncuyu küstürme riskine göre değerlendir.
-- Uygulama arka plana geçince (AppState) müzik durmalı; oyun duraklatma GameScreen'de olduğu için Core'a istek olarak yaz.
+- Uygulama arka plana geçince (AppState) oyun duraklatması GameScreen'de (Core); ses tarafında ek bir şey gerekiyorsa Core'a istek olarak yaz.
 - Küçük ekranlarda (iPhone SE) ve alttaki banner alanıyla çakışmayı kontrol et.
 
 ## Çıktı formatı (Türkçe, kısa)

@@ -25,7 +25,7 @@ import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Stop } from 'r
 import Pin, { PIN_H, PIN_W } from '../components/Pin';
 import { strings } from '../data/strings';
 import { sounds } from '../utils/sounds';
-import { getAppSettings } from '../utils/storage';
+import { getAppSettings, saveAppSettings } from '../utils/storage';
 
 const HOME_BACKGROUND_LAYER = require('../../assets/ui/homepage-background.jpg');
 const HOME_TARGET = require('../../assets/ui/homepage-target.png');
@@ -83,17 +83,14 @@ export default function HomeScreen({
   const playPressScale = useSharedValue(1);
 
   useEffect(() => {
-    soundEnabledRef.current = soundEnabled;
-    sounds.setEnabled(soundEnabled);
-  }, [soundEnabled]);
-
-  useEffect(() => {
     let mounted = true;
 
+    // Ses ayarının tek kaynağı storage'daki AppSettings — açılışta oradan okunur.
     getAppSettings().then((settings) => {
       if (!mounted) return;
-      // soundEnabled yüklenmez — sounds.ts zaten true ile başlar
-      void settings;
+      soundEnabledRef.current = settings.soundEnabled;
+      setSoundEnabled(settings.soundEnabled);
+      sounds.setEnabled(settings.soundEnabled);
     });
 
     return () => {
@@ -155,6 +152,10 @@ export default function HomeScreen({
       const next = !enabled;
       soundEnabledRef.current = next;
       sounds.setEnabled(next);
+
+      getAppSettings().then((settings) => {
+        saveAppSettings({ ...settings, soundEnabled: next });
+      });
 
       if (next) {
         sounds.button();

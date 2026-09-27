@@ -19,6 +19,7 @@ import { LEVELS } from './src/data/levels';
 import { syncHighScoreToCloud, syncPlayerProfileToCloud } from './src/services/playerCloud';
 import {
   PlayerProfile,
+  getAppSettings,
   getPlayerProfile,
   getHighScore,
   getHighestUnlockedLevel,
@@ -85,6 +86,20 @@ export default function App() {
   React.useEffect(() => {
     getHighestUnlockedLevel().then(setHighestUnlockedLevel);
     getHighScore().then(setHighScore);
+  }, []);
+
+  // Açılışta kayıtlı ses ayarını uygula — tek kaynak storage'daki AppSettings.
+  React.useEffect(() => {
+    let mounted = true;
+
+    getAppSettings().then((settings) => {
+      if (!mounted) return;
+      sounds.setEnabled(settings.soundEnabled);
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   React.useEffect(() => {

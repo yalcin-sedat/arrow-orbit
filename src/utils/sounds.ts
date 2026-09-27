@@ -89,33 +89,6 @@ async function playPooled(name: SoundName): Promise<void> {
   } catch {}
 }
 
-// --- Arka plan müziği ---
-
-let musicPlayer: AudioPlayer | null = null;
-let musicEnabled = true;
-
-async function startMusic(): Promise<void> {
-  if (!musicEnabled) return;
-  try {
-    await ensureAudioMode();
-    if (!musicPlayer) {
-      musicPlayer = createAudioPlayer(require('../../assets/sounds/game-music-loop.mp3'));
-      musicPlayer.volume = 0.35;
-      musicPlayer.loop = true;
-    }
-    musicPlayer.play();
-  } catch {}
-}
-
-function stopMusic(): void {
-  try { musicPlayer?.pause(); } catch {}
-}
-
-function setMusicEnabled(value: boolean): void {
-  musicEnabled = value;
-  if (!value) stopMusic();
-}
-
 export const sounds = {
   tap:      () => play('tap'),
   launch:   () => play('launch'),
@@ -129,8 +102,4 @@ export const sounds = {
   coin:     () => playPooled('coin'),
   isEnabled:        () => sfxEnabled,
   setEnabled:       (v: boolean) => { sfxEnabled = v; },
-  startMusic,
-  stopMusic,
-  isMusicEnabled:   () => musicEnabled,
-  setMusicEnabled,
 };

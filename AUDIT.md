@@ -4,7 +4,7 @@
 > Durum: ⬜ açık · 🔄 devam ediyor · ✅ bitti · ⏸ ertelendi
 > Önem: 🔴 Kritik · 🟠 Yüksek · 🟡 Orta · ⚪ Düşük
 > Son inceleme: 2026-09-24 — core, ui-ses, yayin agent'ları (İNCELE modu). Baseline commit: `a352223`.
-> Son güncelleme: 2026-09-26 — 1.1, 1.4, 2.8, 5.1, 6.3 düzeltildi, denetci ONAY verdi; cihaz testi ve commit bekliyor.
+> Son güncelleme: 2026-09-28 — Adım 1-2 ✅; 3.3, 4.1, 4.3, 5.1, 6.3 cihazda test edildi ✅; oyunda müzik yok (4.1).
 
 ## Adım 0 — Güvenli başlangıç
 
@@ -46,17 +46,17 @@ Yöntem: çarpışma koşulu `angleDistance <= tol` (`gameLogic.ts:32`), yani ta
 |---|---|---|---|---|---|
 | 3.1 | 🔴 | Game over'daki "reklam izle" sahte: 3 sn'lik `setInterval` sayacı çalışıyor, ads SDK çağrısı yok. | `GameOverScreen.tsx:61-75, 129-134` | **Karar (Sedat, 2026-09-26):** Akış kalacak; gerçek rewarded ad'e bağlanacak (6.1 + 6.2 ile birlikte). | ⏸ |
 | 3.2 | 🔴 | Streak geri alma cezası: 12 sn'lik sayaç dolunca ya da SKIP'e basınca `highestUnlockedLevel`'den `min(streak, 5)` level düşülüyor. Oyuncu hiçbir şey yapmasa da ceza otomatik uygulanıyor; oyuncuyu reklam izlemeye zorlayan bir dark pattern. (Önceki "sabit 5 level" ifadesi kısmen yanlıştı.) | `App.tsx:191-204`, `GameOverScreen.tsx:37-82` | **Karar (Sedat, 2026-09-26):** Olduğu gibi kalacak; ürün mekaniği olarak korunuyor. | ⏸ |
-| 3.3 | 🟠 | Projede `AppState` kullanımı yok; uygulama arka plana geçince oyun ve ses duraklamıyor. | `App.tsx`, `GameScreen.tsx`, `sounds.ts` | Core `GameScreen`'i, ui-ses de sesi duraklatsın. | ⬜ |
+| 3.3 | 🟠 | Projede `AppState` kullanımı yok; uygulama arka plana geçince oyun ve ses duraklamıyor. | `App.tsx`, `GameScreen.tsx`, `sounds.ts` | Core `GameScreen`'i, ui-ses de sesi duraklatsın. **2026-09-27:** core: arka planda uçan ok iptal edilip atış hakkı geri veriliyor, rotasyon donuyor, dönüşte Continue ekranı açılıyor. `wasPausedRef` ve `resumeToken` ile level geçişi sırasında donma giderildi. Ses kısmı gereksizleşti: oyunda müzik olmadığı için (4.1) `App.tsx`'teki `AppState` listener'ı kaldırıldı. Denetci core kısmına 3 turda ONAY verdi. 2026-09-28: cihaz testi geçti. | ✅ |
 | 3.5 | — | Test için eklendi: `DEV_UNLOCK_ALL_LEVELS = __DEV__`. Dev build'de 50 levelin hepsi seçilebilir; storage'daki ilerleme değişmez, release'te bayrak kapalı. Training modunda level bitince sonraki levele geçilmiyor (`GameScreen.tsx:399`). | `App.tsx:45-48, 259-263` | **Karar (Sedat, 2026-09-27):** Kalsın, commit'e girsin. | ✅ |
-| 3.4 | 🟡 | Remove Ads ve Settings ekranlarında sahte `Alert` mesajları var ("will be connected before release"). | `RemoveAdsScreen.tsx:18-24`, `SettingsScreen.tsx:65-71` | Remove Ads ekranına giriş ve sahte "Restore" linki kaldırıldı (6.3). Settings'teki diğer Türkçe placeholder Alert'ler 4.4 kapsamında. | 🔄 |
+| 3.4 | 🟡 | Remove Ads ve Settings ekranlarında sahte `Alert` mesajları var ("will be connected before release"). | `RemoveAdsScreen.tsx:18-24`, `SettingsScreen.tsx:65-71` | Remove Ads ekranına giriş ve sahte "Restore" linki kaldırıldı (6.3). Settings'teki diğer Türkçe placeholder Alert'ler 4.4 kapsamında. | ⬜ |
 
 ## Adım 4 — Ses / ayarlar / kayıt (ui-ses)
 
 | # | Önem | Bulgu | Dosya | Öneri | Durum |
 |---|---|---|---|---|---|
-| 4.1 | 🔴 | `startMusic()` hiçbir yerde çağrılmıyor, müzik hiç çalmıyor. | `sounds.ts:97-108` | Uygun ekranda çağrılmalı. | ⬜ |
-| 4.2 | 🟠 | `musicEnabled` ve `reducedMotionEnabled` ayarlarını hiçbir kod okumuyor, Settings'te toggle'ları da yok. `screenFlash` okunuyor ama kullanıcı değiştiremiyor. | `storage.ts:16-30`, `SettingsScreen.tsx:81-96` | Music ve Screen Flash toggle'ı eklenmeli; Reduced Motion ya çalışır hale getirilmeli ya da kaldırılmalı. | ⬜ |
-| 4.3 | 🟠 | Ses ayarının iki kaynağı var: Home'daki toggle kaydetmiyor. Settings'e girip çıkınca ya da uygulama yeniden açılınca ses tekrar açılıyor. | `HomeScreen.tsx:56-97, 155-167`, `SettingsScreen.tsx:34-46` | Tek kaynak storage olmalı. | ⬜ |
+| 4.1 | 🔴 | `startMusic()` hiçbir yerde çağrılmıyor, müzik hiç çalmıyor. | `sounds.ts:97-108` | **Nihai karar (Sedat, 2026-09-28): Oyunda arka plan müziği yok**; çark sesi de eklenmeyecek. Ses efektleri (SFX) aynen kalıyor. Kaldırılanlar:<br>• `sounds.ts`'teki müzik API'si<br>• `App.tsx`'teki müzik başlatma ve `AppState` müzik listener'ı<br>• Settings'teki Music toggle'ı<br>• `AppSettings.musicEnabled`<br>• `strings.music`<br>• `assets/sounds/game-music-loop.mp3` (git geçmişinde duruyor)<br>2026-09-28: cihaz testi geçti; son müzik temizliği denetci bekliyor. | ✅ |
+| 4.2 | 🟠 | `musicEnabled` ve `reducedMotionEnabled` ayarlarını hiçbir kod okumuyor, Settings'te toggle'ları da yok. `screenFlash` okunuyor ama kullanıcı değiştiremiyor. | `storage.ts:16-30`, `SettingsScreen.tsx:81-96` | Music ve Screen Flash toggle'ı eklenmeli; Reduced Motion ya çalışır hale getirilmeli ya da kaldırılmalı. **2026-09-27:** Screen Flash toggle'ı Settings'e eklendi (denetci ONAY verdi). Music toggle'ı artık gerekmiyor (4.1: müzik yok). **Reduced Motion hâlâ açık:** storage'da duruyor ama tüketicisi yok; core + ui-ses ile ele alınmalı ya da kaldırılmalı, ürün kararı bekliyor. | 🔄 |
+| 4.3 | 🟠 | Ses ayarının iki kaynağı var: Home'daki toggle kaydetmiyor. Settings'e girip çıkınca ya da uygulama yeniden açılınca ses tekrar açılıyor. | `HomeScreen.tsx:56-97, 155-167`, `SettingsScreen.tsx:34-46` | Tek kaynak storage olmalı. **2026-09-27:** ui-ses: Home toggle'ı `saveAppSettings` ile kaydediyor, ayarlar `App.tsx` açılışında uygulanıyor. Denetci ONAY verdi. 2026-09-28: cihaz testi geçti. | ✅ |
 | 4.4 | 🟡 | Dil karışık: bazı `Alert`'ler ve paylaşım metni Türkçe hardcoded, geri kalan UI İngilizce. | `SettingsScreen.tsx:65-71`, `HomeScreen.tsx:174-187` | İngilizce'ye çevrilip `strings.ts`'e taşınmalı. | ⬜ |
 | 4.5 | ⚪ | `strings.ts` dışında hardcoded metin: RemoveAds (tamamı), Scoreboard, ProfileSetup. | ilgili ekranlar | `strings.ts`'e taşınmalı. | ⬜ |
 | 4.6 | ⚪ | Storage anahtarlarının versiyonlaması tutarsız, migration mekanizması yok (bozuk veri güvenle varsayılana düşüyor). | `storage.ts:4-7, 82-95` | İleride şema değişirse ele alınsın. | ⏸ |
@@ -66,8 +66,8 @@ Yöntem: çarpışma koşulu `angleDistance <= tol` (`gameLogic.ts:32`), yani ta
 
 | # | Önem | Bulgu | Dosya | Öneri | Durum |
 |---|---|---|---|---|---|
-| 5.1 | 🔴 | `readEnv()` değişkenleri dolaylı okuyor (`const env = process.env`), bu yüzden Expo inline etmiyor ve Firebase her zaman kapalı. Doğrulandı. | `services/firebase.ts:23-46` | Her değişken `process.env.EXPO_PUBLIC_X` şeklinde doğrudan okunmalı. **2026-09-26:** yayin düzeltti; `tsc` temiz, `expo export` ile inline edildiği doğrulandı. Denetci ONAY verdi. Cihaz testi bekliyor (`.env.local` doluyken bağlantı, boşken çökmeme). | 🔄 |
-| 5.2 | 🔴 | `firestore.rules` repoda yok. İstemci `players/{uid}`'ye `highScore` ve `highestUnlockedLevel` yazıyor, hiçbir doğrulama yok; hile yapmak kolay. | `services/playerCloud.ts:49-71` | Kurallar yazılmalı: uid eşleşmesi, tip ve üst sınır kontrolü, artış limiti, username uzunluk kontrolü. | ⬜ |
+| 5.1 | 🔴 | `readEnv()` değişkenleri dolaylı okuyor (`const env = process.env`), bu yüzden Expo inline etmiyor ve Firebase her zaman kapalı. Doğrulandı. | `services/firebase.ts:23-46` | Her değişken `process.env.EXPO_PUBLIC_X` şeklinde doğrudan okunmalı. **2026-09-26:** yayin düzeltti; `tsc` temiz, `expo export` ile inline edildiği doğrulandı. Denetci ONAY verdi. 2026-09-28: cihaz testi geçti (Firebase kapalıyken çökmüyor). Gerçek anahtarlarla bağlantı 5.3 sonrası denenecek. | ✅ |
+| 5.2 | 🔴 | `firestore.rules` repoda yok. İstemci `players/{uid}`'ye `highScore` ve `highestUnlockedLevel` yazıyor, hiçbir doğrulama yok; hile yapmak kolay. | `services/playerCloud.ts:49-71` | Kurallar yazılmalı: uid eşleşmesi, tip ve üst sınır kontrolü, artış limiti, username uzunluk kontrolü. **2026-09-27:** yayin `firestore.rules` ve `firebase.json` yazdı. Kurallar:<br>• Okuma: giriş yapmış kullanıcı. Yazma ve silme: sadece `uid` sahibi.<br>• Alan whitelist'i (`hasOnly`) ve avatar id listesi, username 3-14 karakter.<br>• `highScore` int, sadece artabilir, tavan 3000 (teorik maksimum ~2474).<br>• `highestUnlockedLevel` int, 1..50. +1 artış sınırı kaçırılan bir sync'ten sonra bulut senkronunu kalıcı kilitleyeceği için bilerek konmadı; streak rollback (3.2) değeri düşürebildiği için monotonluk da yok.<br>• `updatedAt == request.time`.<br>Denetci ONAY verdi. **Deploy edilmedi**: Sedat `firebase use --add` ve ardından `firebase deploy --only firestore:rules` çalıştırmalı; öncesinde emulator testi önerilir. | 🔄 |
 | 5.3 | 🟠 | `.env.local`'daki 6 anahtarın hepsi boş; Firebase projesi henüz bağlanmamış. **2026-09-26 notu:** `expo export` sırasında `.env.local`'dan 5 değişken yüklendi; `PROJECT_ID` dosyada yok. Önceki "hepsi boş" tespiti güncel değil ya da eksik. | `.env.local` | Sedat 6 anahtarın da dolu olduğunu kontrol etmeli. | ⬜ |
 
 ## Adım 6 — Yayın (yayin)
@@ -76,8 +76,8 @@ Yöntem: çarpışma koşulu `angleDistance <= tol` (`gameLogic.ts:32`), yani ta
 |---|---|---|---|---|---|
 | 6.2 | 🔴 | UMP (GDPR onayı) ve ATT yok; `NSUserTrackingUsageDescription` da yok. AB'de reklam göstermeden önce UMP zorunlu. | `app.json`, `services/` | Reklamlardan önce `consent.ts` + ATT eklenmeli. | ⬜ |
 | 6.1 | 🟠 | AdMob SDK kurulu ama kodda hiçbir reklam bileşeni yok; `app.json`'daki ID'ler Google'ın test ID'leri. | `app.json:29-38` | `services/ads.ts` yazılmalı; gerçek ID'ler Sedat'tan. | ⬜ |
-| 6.3 | 🟠 | IAP tamamen sahte: IAP paketi yok, "Buy" butonu sadece Alert gösteriyor. Mağaza reddi riski var. | `RemoveAdsScreen.tsx:18-24` | **Karar (Sedat, 2026-09-26):** İlk sürümden kaldırılacak. ui-ses düzeltti: App, Home ve Settings'teki girişler kaldırıldı; `RemoveAdsScreen.tsx` ve string'ler IAP için duruyor. `tsc` temiz. Denetci ONAY verdi. Kullanılmayan `strings.removeAds` ve `strings.restore` 4.5'te temizlenebilir. Cihaz testi bekliyor. | 🔄 |
-| 6.8 | 🟠 | Gizlilik politikası URL'si, veri toplama beyanı ve hesap/veri silme yolu yok. | `SettingsScreen.tsx` | Politika hazırlanmalı; App Privacy ve Data Safety formları doldurulmalı. | ⬜ |
+| 6.3 | 🟠 | IAP tamamen sahte: IAP paketi yok, "Buy" butonu sadece Alert gösteriyor. Mağaza reddi riski var. | `RemoveAdsScreen.tsx:18-24` | **Karar (Sedat, 2026-09-26):** İlk sürümden kaldırılacak. ui-ses düzeltti: App, Home ve Settings'teki girişler kaldırıldı; `RemoveAdsScreen.tsx` ve string'ler IAP için duruyor. `tsc` temiz. Denetci ONAY verdi. Kullanılmayan `strings.removeAds` ve `strings.restore` 4.5'te temizlenebilir. 2026-09-28: cihaz testi geçti. | ✅ |
+| 6.8 | 🟠 | Gizlilik politikası URL'si, veri toplama beyanı ve hesap/veri silme yolu yok. | `SettingsScreen.tsx` | Politika hazırlanmalı; App Privacy ve Data Safety formları doldurulmalı. Not (2026-09-27): Firestore'daki `delete` kuralı hazır, ama `playerCloud.ts`'te kendi dokümanını silen bir fonksiyon ve bunun UI'ı henüz yok. | ⬜ |
 | 6.4 | 🟡 | Gereksiz izinler: `RECORD_AUDIO` (`app.json`); yerel prebuild'de ayrıca `SYSTEM_ALERT_WINDOW`, storage izinleri ve `NSMicrophoneUsageDescription`. Kodda kayıt yok. | `app.json:19-24` | Kaldırılmalı, `expo-audio` mikrofon izni kapatılmalı, ardından `npx expo prebuild --clean`. | ⬜ |
 | 6.5 | 🟡 | `userInterfaceStyle: "light"` sabit; `splash` / `expo-splash-screen` ayarı yok. | `app.json:8` | Splash eklenmeli. | ⬜ |
 | 6.6 | 🟡 | `eas.json` yok, EAS build yapılandırılmamış. | kök | Sedat: `eas login` + `eas build:configure`. | ⬜ |
@@ -87,13 +87,21 @@ Yöntem: çarpışma koşulu `angleDistance <= tol` (`gameLogic.ts:32`), yani ta
 
 1. Firebase projesi: Firestore + Anonymous Auth açılsın, 6 değer `.env.local`'a girilsin (5.3).
 2. AdMob uygulamaları (iOS + Android) oluşturulsun, gerçek App ID ve Ad Unit ID'leri alınsın (6.1).
-3. Remove Ads IAP ürünü tanımlansın ya da ilk sürümden çıkarılsın (6.3).
+3. Firestore kurallarını deploy et: `firebase use --add` → `firebase deploy --only firestore:rules` (5.2).
 4. `eas login` + `eas build:configure` (6.6).
 5. Gizlilik politikası barındırılsın; App Privacy / Data Safety formları doldurulsun (6.8).
 
 ## Sonraki adımlar
 
-- **Adım 7 — Temizlik/doküman:** Eski projeden kalan ölü kod (`Ball.tsx`, `Wheel.tsx`, `countries.ts`, `assets/flags`, `assets/maps`, `assets/backgrounds`); iki lock dosyası (npm + pnpm); test yok; dokümanlar koddan geride.
+## Adım 7 — Temizlik / test / doküman (2026-09-28 Lead hızlı kontrolü, agent incelemesi yapılmadı)
+
+| # | Önem | Bulgu | Dosya | Öneri | Durum |
+|---|---|---|---|---|---|
+| 7.1 | 🟡 | Eski projeden (football-flag-game) ölü kod ve asset kaldı. `Ball.tsx` ve `Wheel.tsx` sadece birbirini import ediyor, uygulamada kullanılmıyor. `assets/backgrounds` 2,1 MB ve bundle'ı şişirebilir. | `src/components/Ball.tsx`, `Wheel.tsx`, `src/data/countries.ts`, `assets/flags` (15 dosya), `assets/maps` (15 dosya), `assets/backgrounds` | Kullanılmadıkları grep ile tekrar doğrulanıp silinmeli. | ⬜ |
+| 7.2 | 🟡 | İki lock dosyası var: `package-lock.json` (npm) ve `pnpm-lock.yaml`. Hangi paket yöneticisinin kullanıldığı belirsiz; EAS build yanlış olanı seçebilir. | kök | Tek paket yöneticisine karar verilsin (CLAUDE.md `npx` kullanıyor → npm); `pnpm-lock.yaml` silinsin. | ⬜ |
+| 7.3 | 🟠 | Hiç test yok: `package.json`'da `test` script'i ya da Jest yok. Saf oyun matematiği (`gameLogic.ts`: impact açısı, çarpışma, level tamamlanma, skor) regresyona açık. Adım 2'deki kapasite hatası da test olsaydı yakalanırdı. | `package.json`, `src/utils/gameLogic.ts` | `jest-expo` ile `gameLogic.ts` birim testleri ve `levels.ts` için "her level geçilebilir mi" (kapasite ≥ requiredPins + 2) testi. | ⬜ |
+| 7.4 | ⚪ | Kullanılmayan kod: `RemoveAdsScreen.tsx` (6.3, IAP için bilerek duruyor), `strings.removeAds` / `strings.restore`, `AppSettings.reducedMotionEnabled` (4.2). | ilgili dosyalar | 4.2 ve 4.5 ile birlikte ele alınsın. | ⏸ |
+| 7.5 | 🟡 | Dokümanlar koddan geride: `PROGRESS.md`, `ROADMAP.md`, `ARCHITECTURE.md` son değişiklikleri (AppState, müziğin kaldırılması, Firestore kuralları, Remove Ads) yansıtmıyor. | kök `.md` dosyaları | Commit'lerden sonra güncellensin. | ⬜ |
 
 ## Düzeltilen eski bulgular
 

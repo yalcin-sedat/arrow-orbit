@@ -4,6 +4,20 @@
   },
   "permissions": {
     "disableBypassPermissionsMode": "disable",
+    "allow": [
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(echo *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git remote -v)",
+      "Bash(git fetch)",
+      "Bash(git fetch *)"
+    ],
     "ask": [
       "Bash(git add *)",
       "Bash(git commit *)",

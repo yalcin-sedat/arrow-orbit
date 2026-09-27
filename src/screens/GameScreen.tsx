@@ -1,6 +1,7 @@
 // Çekirdek oyun ekranı — yeni pivot: dönen hedefe pin/ok saplama.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AppState,
   Dimensions,
   StyleSheet,
   Text,
@@ -148,6 +149,11 @@ export default function GameScreen({
   const [transitionLevelId, setTransitionLevelId] = useState<number | null>(null);
   const [hapticsEnabled, setHapticsEnabled] = useState(DEFAULT_APP_SETTINGS.hapticsEnabled);
   const [screenFlashEnabled, setScreenFlashEnabled] = useState(DEFAULT_APP_SETTINGS.screenFlashEnabled);
+  // Arka plandan dönüşte rotasyon effect'ini zorla yeniden tetiklemek için sayaç.
+  // isLevelingUp=true iken arka plana geçilirse rotasyon effect'inin bağımlılıkları
+  // (levelIdx, exitConfirmVisible vb.) hiç değişmeyebilir; bu sayaç değişerek
+  // effect'i her durumda yeniden çalıştırır ve donmuş hedefi kurtarır.
+  const [resumeToken, setResumeToken] = useState(0);
 
   const level = LEVELS[levelIdx];
   const visualZone = getVisualZone(level.id);
@@ -163,6 +169,10 @@ export default function GameScreen({
   const throwIdRef = useRef(0);
   // Bu levelde çarpışma/can kaybı oldu mu — streak reset takibi için
   const levelLostLife = useRef(false);
+  // AppState pause dalında rotasyon gerçekten donduruldu mu — active dönüşünde
+  // sadece bu true ise resumeToken artırılır; aksi halde speedPattern'li
+  // withSequence gereksiz yere baştan başlar.
+  const wasPausedRef = useRef(false);
 
   const targetRotation = useSharedValue(0);
   const rotationRef = useRef(0);
@@ -225,6 +235,51 @@ export default function GameScreen({
     gameStateRef.current = gameState;
   }, [gameState]);
 
+  // Uygulama arka plana/inaktif duruma geçince oyunu duraklat:
+  // hedef rotasyonunu dondur, uçmakta olan oku iptal edip atış hakkını
+  // kullanıcıya geri ver (rotasyon donduğundan yarıda kalan atışı donmuş
+  // açıya göre "çözmek" yerine iptal etmek daha güvenli ve adil).
+  // Geri dönüşte mevcut exit-confirm overlay'i açılır; kullanıcı "Continue"
+  // ile dokunarak devam eder (aynı UI, ekstra state gerekmez).
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        // Sadece gerçekten duraklatılmışsa (pause dalında cancelAnimation
+        // çalıştıysa) rotasyon effect'ini zorla tetikle; aksi halde
+        // withSequence içeren speedPattern'ler gereksiz yere baştan başlar.
+        if (wasPausedRef.current) {
+          wasPausedRef.current = false;
+          // gameOver true iken (örn. finishGame'in async saveHighScoreIfBetter
+          // beklerken) rotasyonu tekrar başlatma; ekran birazdan game-over'a geçecek.
+          if (!gameOver) {
+            setResumeToken((token) => token + 1);
+          }
+        }
+        return;
+      }
+      if (nextState !== 'background' && nextState !== 'inactive') return;
+      if (gameOver || exitConfirmVisible) return;
+
+      if (pinLaunchedRef.current) {
+        throwIdRef.current += 1;
+        pinLaunchedRef.current = false;
+        cancelAnimation(pinY);
+        pinFallX.value = 0;
+        pinFallRotation.value = 0;
+        pinY.value = PIN_Y_REST;
+        setPinLaunched(false);
+      }
+
+      wasPausedRef.current = true;
+      cancelAnimation(targetRotation);
+      if (!isLevelingUp) {
+        setExitConfirmVisible(true);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [gameOver, exitConfirmVisible, isLevelingUp, pinY, pinFallX, pinFallRotation, targetRotation]);
+
   useEffect(() => {
     levelRef.current = LEVELS[levelIdx];
     levelLostLife.current = false;
@@ -235,6 +290,10 @@ export default function GameScreen({
   }, [levelIdx]);
 
   useEffect(() => {
+    // exitConfirmVisible true olduğunda (manuel çıkış veya arka plana geçiş
+    // sonrası) rotasyon donar; false olduğunda (Continue) rotationRef.current
+    // (donma anındaki açı) başlangıç kabul edilip animasyon aynı yönde devam eder —
+    // böylece arka plandan dönüşte hedef sıçramaz, kaldığı yerden döner.
     if (exitConfirmVisible) {
       cancelAnimation(targetRotation);
       return undefined;
@@ -285,7 +344,7 @@ export default function GameScreen({
     targetRotation.value = withRepeat(animation, -1, false);
 
     return () => cancelAnimation(targetRotation);
-  }, [exitConfirmVisible, levelIdx, level.direction, level.rotationDuration, level.speedPattern]);
+  }, [exitConfirmVisible, levelIdx, level.direction, level.rotationDuration, level.speedPattern, resumeToken]);
 
   useEffect(() => {
     // NOT: Bu interval yalnızca görsel/kozmetik amaçlıdır (örn. kalp pickup
@@ -568,6 +627,9 @@ export default function GameScreen({
   }
 
   function resolveThrow(throwId: number, exactRotation: number) {
+    // throwId eşleşmezse bu atış zaten iptal edilmiş demektir (manuel çıkış ya da
+    // uygulama arka plana geçtiği için throwIdRef artırıldı) — donmuş/bayat açıyla
+    // isabet çözümlemeye çalışmadan sessizce çık.
     if (throwId !== throwIdRef.current || !pinLaunchedRef.current) return;
 
     const currentLevel = levelRef.current;

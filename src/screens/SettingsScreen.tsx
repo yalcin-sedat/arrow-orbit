@@ -90,6 +90,14 @@ export default function SettingsScreen({ onBack, onEditProfile, playerProfile }:
             value={settings.hapticsEnabled}
             onValueChange={(value) => updateSetting('hapticsEnabled', value)}
           />
+          <SettingRow
+            accent={colors.neonBlue}
+            icon="screenFlash"
+            label={strings.screenFlash}
+            tag="VISUAL"
+            value={settings.screenFlashEnabled}
+            onValueChange={(value) => updateSetting('screenFlashEnabled', value)}
+          />
 
           <View style={styles.linkRow}>
             <TouchableOpacity
@@ -239,7 +247,7 @@ function PremiumToggle({
   );
 }
 
-type SettingIconType = 'haptics' | 'sound';
+type SettingIconType = 'haptics' | 'screenFlash' | 'sound';
 
 function SettingOptionIcon({ color, type }: { color: string; type: SettingIconType }) {
   return (
@@ -268,6 +276,16 @@ function SettingOptionIcon({ color, type }: { color: string; type: SettingIconTy
           />
           <Path d="M14 23h4M5.5 11.5 3.5 9M5.5 20.5 3.5 23M26.5 11.5 28.5 9M26.5 20.5 28.5 23" stroke="#dffbff" strokeLinecap="round" strokeWidth="2" />
         </>
+      ) : null}
+
+      {type === 'screenFlash' ? (
+        <Path
+          d="M17.5 3 8 18h7l-1.5 11L24 14h-7Z"
+          fill="rgba(0,212,255,0.16)"
+          stroke={color}
+          strokeLinejoin="round"
+          strokeWidth="2.2"
+        />
       ) : null}
 
     </Svg>

@@ -1,9 +1,5 @@
 {
-  "enabledPlugins": {
-    "expo@claude-plugins-official": true
-  },
   "permissions": {
-    "disableBypassPermissionsMode": "disable",
     "allow": [
       "Bash(npx tsc --noEmit)",
       "Bash(npx tsc --noEmit *)",
@@ -16,7 +12,24 @@
       "Bash(git show *)",
       "Bash(git remote -v)",
       "Bash(git fetch)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(xargs cat)",
+      "Bash(npm test *)",
+      "Bash(node -e \"console.log\\(require\\('./package.json'\\).dependencies['expo-splash-screen']\\)\")"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
+      "Bash(git push --mirror*)",
+      "Bash(git push * --mirror*)",
+      "Bash(git push * --delete *)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(gh repo delete*)",
+      "Bash(gh repo archive*)",
+      "Read(.env.local)"
     ],
     "ask": [
       "Bash(git add *)",
@@ -44,19 +57,9 @@
       "Bash(gh api *)",
       "Bash(gh auth *)"
     ],
-    "deny": [
-      "Bash(git push --force*)",
-      "Bash(git push * --force*)",
-      "Bash(git push -f*)",
-      "Bash(git push * -f*)",
-      "Bash(git push --mirror*)",
-      "Bash(git push * --mirror*)",
-      "Bash(git push * --delete *)",
-      "Bash(git reset --hard*)",
-      "Bash(git clean -f*)",
-      "Bash(gh repo delete*)",
-      "Bash(gh repo archive*)",
-      "Read(.env.local)"
-    ]
+    "disableBypassPermissionsMode": "disable"
+  },
+  "enabledPlugins": {
+    "expo@claude-plugins-official": true
   }
 }

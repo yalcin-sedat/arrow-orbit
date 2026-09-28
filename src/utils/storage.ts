@@ -124,3 +124,18 @@ export async function savePlayerProfile(profile: PlayerProfile): Promise<void> {
     // Profil kaydı başarısız olursa oyun akışını bozma.
   }
 }
+
+// "Verilerimi sil" akışı (AUDIT 6.8): oyuncuya özel veriler (skor, ilerleme,
+// profil) silinir. AppSettings (ses/haptic/flash) kişisel veri değil, cihaz
+// tercihi olduğu için kasıtlı olarak silinmez.
+export async function clearAllLocalData(): Promise<void> {
+  try {
+    await AsyncStorage.multiRemove([
+      KEY_HIGH_SCORE,
+      KEY_HIGHEST_UNLOCKED_LEVEL,
+      KEY_PLAYER_PROFILE,
+    ]);
+  } catch {
+    // Yerel silme başarısız olursa çağıran taraf (App.tsx) state'i zaten sıfırlar.
+  }
+}

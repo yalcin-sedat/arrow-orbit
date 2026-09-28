@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dimensions, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { strings } from '../data/strings';
 import { getHighScore } from '../utils/storage';
 import Animated, {
   useSharedValue,
@@ -129,28 +130,28 @@ export default function GameOverScreen({ finalScore, isTraining = false, isNewRe
             {adPlaying ? (
               <>
                 <View style={styles.mockAdBox}>
-                  <Text style={styles.mockAdLabel}>AD</Text>
+                  <Text style={styles.mockAdLabel}>{strings.adBadge}</Text>
                   <Text style={styles.mockAdSkip}>{adProgress}s</Text>
                 </View>
-                <Text style={styles.adSubtitle}>Reklam oynatılıyor...</Text>
+                <Text style={styles.adSubtitle}>{strings.adPlayingLabel}</Text>
               </>
             ) : (
               <>
                 <Text style={styles.adCountdown}>{countdown}</Text>
-                <Text style={styles.adTitle}>{protectedLevels > 0 ? 'PROTECT YOUR STREAK' : 'BONUS CHANCE'}</Text>
+                <Text style={styles.adTitle}>{protectedLevels > 0 ? strings.protectStreakTitle : strings.bonusChanceTitle}</Text>
                 <Text style={styles.adSubtitle}>
                   {protectedLevels > 0
-                    ? `Watch a short ad to protect your\nlast ${protectedLevels} ${protectedLevels === 1 ? 'level' : 'levels'}.`
-                    : 'Watch a short ad before continuing.'}
+                    ? strings.protectStreakBody(protectedLevels)
+                    : strings.bonusChanceBody}
                 </Text>
                 <TouchableOpacity style={styles.adWatchBtn} onPress={handleWatchAd} activeOpacity={0.82}>
-                  <Text style={styles.adWatchText}>{protectedLevels > 0 ? 'WATCH AD — PROTECT' : 'WATCH AD'}</Text>
+                  <Text style={styles.adWatchText}>{protectedLevels > 0 ? strings.watchAdProtect : strings.watchAd}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.adGiveUpBtn} onPress={handleGiveUp} activeOpacity={0.75}>
                   <Text style={styles.adGiveUpText}>
                     {protectedLevels > 0
-                      ? `SKIP — RISK LOSING ${protectedLevels} ${protectedLevels === 1 ? 'LEVEL' : 'LEVELS'}`
-                      : 'SKIP'}
+                      ? strings.skipRiskLosing(protectedLevels)
+                      : strings.skip}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -163,7 +164,7 @@ export default function GameOverScreen({ finalScore, isTraining = false, isNewRe
       <View style={styles.content}>
         {/* Başlık */}
         <Animated.View style={[styles.titleWrapper, titleStyle]}>
-          <Text style={styles.title}>GAME OVER</Text>
+          <Text style={styles.title}>{strings.oyunBitti}</Text>
         </Animated.View>
 
         {/* Skor kartı */}
@@ -176,41 +177,41 @@ export default function GameOverScreen({ finalScore, isTraining = false, isNewRe
 
           {isTraining && (
             <View style={styles.trainingBadge}>
-              <Text style={styles.trainingBadgeText}>TRAINING RUN</Text>
+              <Text style={styles.trainingBadgeText}>{strings.trainingRunTag}</Text>
             </View>
           )}
 
           {!isTraining && isNewRecord && (
             <View style={styles.newRecordBadge}>
-              <Text style={styles.newRecordText}>⭐ NEW RECORD ⭐</Text>
+              <Text style={styles.newRecordText}>{strings.newRecordBadge}</Text>
             </View>
           )}
 
-          <Text style={styles.scoreLabel}>{isTraining ? '» TRAINING SCORE «' : '» FINAL SCORE «'}</Text>
+          <Text style={styles.scoreLabel}>{isTraining ? strings.trainingScoreLabel : strings.finalScoreLabel}</Text>
 
           <View style={[styles.scoreBox, { width: cardWidth * 0.9 }]}>
             <Text style={styles.scoreValue}>{finalScore}</Text>
             {!isTraining && !isNewRecord && highScore > 0 && (
-              <Text style={styles.highScoreText}>Best: {highScore}</Text>
+              <Text style={styles.highScoreText}>{strings.enYuksek(highScore)}</Text>
             )}
           </View>
 
           {isTraining && (
             <View style={styles.trainingStatsRow}>
               <View style={styles.trainingStatPill}>
-                <Text style={styles.trainingStatLabel}>MISTAKES</Text>
+                <Text style={styles.trainingStatLabel}>{strings.mistakesLabel}</Text>
                 <Text style={styles.trainingStatValue}>{mistakes}</Text>
               </View>
               <View style={styles.trainingStatPill}>
-                <Text style={styles.trainingStatLabel}>SAVED</Text>
-                <Text style={styles.trainingStatValue}>NO</Text>
+                <Text style={styles.trainingStatLabel}>{strings.savedLabel}</Text>
+                <Text style={styles.trainingStatValue}>{strings.savedNo}</Text>
               </View>
             </View>
           )}
 
           {levelReached !== undefined && (
             <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>REACHED LEVEL {levelReached}</Text>
+              <Text style={styles.levelBadgeText}>{strings.reachedLevel(levelReached)}</Text>
             </View>
           )}
 
@@ -227,7 +228,7 @@ export default function GameOverScreen({ finalScore, isTraining = false, isNewRe
               onPress={() => { sounds.button(); onRestart(); }}
               activeOpacity={0.82}
             >
-              <Text style={styles.btnPrimaryText}>» PLAY AGAIN «</Text>
+              <Text style={styles.btnPrimaryText}>{strings.playAgainDeco}</Text>
             </TouchableOpacity>
             <Text style={styles.btnDecoRightGold}>≫</Text>
           </View>
@@ -240,7 +241,7 @@ export default function GameOverScreen({ finalScore, isTraining = false, isNewRe
               onPress={() => { sounds.button(); onHome(); }}
               activeOpacity={0.75}
             >
-              <Text style={styles.btnSecondaryText}>« MAIN MENU »</Text>
+              <Text style={styles.btnSecondaryText}>{strings.mainMenuDeco}</Text>
             </TouchableOpacity>
             <Text style={styles.btnDecoBlue}>»</Text>
           </View>

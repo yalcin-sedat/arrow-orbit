@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import PlayerAvatarBadge from '../components/PlayerAvatarBadge';
 import { PLAYER_AVATARS } from '../data/playerAvatars';
+import { strings } from '../data/strings';
 import { colors } from '../theme/colors';
 import {
   PlayerAvatarId,
@@ -34,9 +35,9 @@ export default function ProfileSetupScreen({
   initialProfile = null,
   onBack,
   onDone,
-  submitLabel = 'CONTINUE',
-  subtitle = 'Pick an avatar and a short player name.',
-  title = 'Choose your orbit',
+  submitLabel = strings.continueLabel,
+  subtitle = strings.chooseOrbitSubtitle,
+  title = strings.chooseOrbitTitle,
 }: ProfileSetupScreenProps) {
   const { width } = useWindowDimensions();
   const [selectedAvatarId, setSelectedAvatarId] = useState<PlayerAvatarId>(initialProfile?.avatarId ?? 'nova');
@@ -85,7 +86,7 @@ export default function ProfileSetupScreen({
               ) : null}
               <View style={styles.kickerGroup}>
                 <PlayerCardIcon />
-                <Text style={styles.kicker}>PLAYER CARD</Text>
+                <Text style={styles.kicker}>{strings.profileCardTag}</Text>
               </View>
             </View>
 
@@ -102,7 +103,7 @@ export default function ProfileSetupScreen({
                 symbol={selectedAvatar.id}
               />
               <View style={styles.selectedCopy}>
-                <Text style={styles.selectedLabel}>SELECTED</Text>
+                <Text style={styles.selectedLabel}>{strings.selectedTag}</Text>
                 <Text style={[styles.selectedName, { color: selectedAvatar.accent }]}>
                   {selectedAvatar.label}
                 </Text>
@@ -148,19 +149,19 @@ export default function ProfileSetupScreen({
             </View>
 
             <View style={styles.inputBlock}>
-              <Text style={styles.inputLabel}>PLAYER NAME</Text>
+              <Text style={styles.inputLabel}>{strings.playerNameLabel}</Text>
               <TextInput
                 autoCapitalize="characters"
                 autoCorrect={false}
                 maxLength={14}
                 onChangeText={setUsername}
-                placeholder="ORBIT ACE"
+                placeholder={strings.playerNamePlaceholder}
                 placeholderTextColor="rgba(255,255,255,0.25)"
                 returnKeyType="done"
                 style={[styles.input, { width: inputWidth }]}
                 value={username}
               />
-              <Text style={styles.helperText}>3-14 characters. You can change it later.</Text>
+              <Text style={styles.helperText}>{strings.playerNameHelper}</Text>
             </View>
 
             <TouchableOpacity

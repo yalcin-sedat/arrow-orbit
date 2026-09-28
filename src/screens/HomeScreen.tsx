@@ -171,8 +171,8 @@ export default function HomeScreen({
     }
 
     Share.share({
-      message: 'Arrow Orbit oynuyorum. Sen de dene!',
-      title: 'Arrow Orbit',
+      message: strings.shareMessage,
+      title: strings.brandTitle,
     }).catch(() => {
       // Paylaşım iptal edilirse ana sayfayı bölme.
     });
@@ -183,7 +183,7 @@ export default function HomeScreen({
       sounds.button();
     }
 
-    Alert.alert('Arrow Orbit', 'Mağaza bağlantısı eklendiğinde değerlendirme buradan açılacak.');
+    Alert.alert(strings.brandTitle, strings.comingSoon);
   }
 
   function handlePlayPressIn() {

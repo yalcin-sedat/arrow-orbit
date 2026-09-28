@@ -25,10 +25,12 @@ import { sounds } from '../utils/sounds';
 type SettingsScreenProps = {
   onEditProfile: () => void;
   onBack: () => void;
+  onDeleteData: () => Promise<boolean>;
   playerProfile: PlayerProfile | null;
 };
 
-export default function SettingsScreen({ onBack, onEditProfile, playerProfile }: SettingsScreenProps) {
+export default function SettingsScreen({ onBack, onDeleteData, onEditProfile, playerProfile }: SettingsScreenProps) {
+  const [deleting, setDeleting] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
 
   useEffect(() => {
@@ -62,8 +64,34 @@ export default function SettingsScreen({ onBack, onEditProfile, playerProfile }:
     }
   }
 
-  function showInfo(title: string) {
-    Alert.alert('Arrow Orbit', `${title} bağlantısı yayın hazırlığında eklenecek.`);
+  function showInfo() {
+    Alert.alert(strings.brandTitle, strings.comingSoon);
+  }
+
+  function handleDeletePress() {
+    Alert.alert(
+      strings.deleteDataTitle,
+      strings.deleteDataMessage,
+      [
+        { style: 'cancel', text: strings.cancelLabel },
+        {
+          onPress: handleConfirmDelete,
+          style: 'destructive',
+          text: strings.deleteLabel,
+        },
+      ],
+    );
+  }
+
+  async function handleConfirmDelete() {
+    setDeleting(true);
+    const success = await onDeleteData();
+    setDeleting(false);
+
+    if (!success) {
+      Alert.alert(strings.brandTitle, strings.deleteDataError);
+    }
+    // Başarılıysa App.tsx zaten Home'a döner; burada ekstra state gerekmez.
   }
 
   return (
@@ -102,19 +130,30 @@ export default function SettingsScreen({ onBack, onEditProfile, playerProfile }:
           <View style={styles.linkRow}>
             <TouchableOpacity
               activeOpacity={0.78}
-              onPress={() => showInfo(strings.privacy)}
+              onPress={showInfo}
               style={styles.linkButton}
             >
               <Text style={styles.linkText}>{strings.privacy.toUpperCase()}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.78}
-              onPress={() => showInfo(strings.terms)}
+              onPress={showInfo}
               style={styles.linkButton}
             >
               <Text style={styles.linkText}>{strings.terms.toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            activeOpacity={0.78}
+            disabled={deleting}
+            onPress={handleDeletePress}
+            style={styles.deleteDataButton}
+          >
+            <Text style={styles.deleteDataText}>
+              {deleting ? strings.deleteLabel.toUpperCase() : strings.deleteMyData.toUpperCase()}
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -344,6 +383,23 @@ const styles = StyleSheet.create({
   },
   linkText: {
     color: colors.neonBlue,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  deleteDataButton: {
+    alignItems: 'center',
+    borderColor: 'rgba(255,90,90,0.32)',
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 14,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 12,
+  },
+  deleteDataText: {
+    color: 'rgba(255,110,110,0.82)',
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.1,

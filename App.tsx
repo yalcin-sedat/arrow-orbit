@@ -16,9 +16,11 @@ import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
 import ScoreboardScreen from './src/screens/ScoreboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { LEVELS } from './src/data/levels';
-import { syncHighScoreToCloud, syncPlayerProfileToCloud } from './src/services/playerCloud';
+import { strings } from './src/data/strings';
+import { deleteOwnPlayerData, syncHighScoreToCloud, syncPlayerProfileToCloud } from './src/services/playerCloud';
 import {
   PlayerProfile,
+  clearAllLocalData,
   getAppSettings,
   getPlayerProfile,
   getHighScore,
@@ -226,6 +228,23 @@ export default function App() {
   function handleHome()                  { setScreen('home'); }
   function handleExitGame()              { setScreen('levels'); }
 
+  // "Verilerimi sil" (AUDIT 6.8): buluttaki players/{uid} dokümanı ve anonim
+  // hesap silinir, başarılıysa yerel veri de silinir ve state ilk açılış
+  // durumuna sıfırlanır. Başarısızsa yerel veriye hiç dokunulmaz.
+  async function handleDeleteMyData(): Promise<boolean> {
+    const result = await deleteOwnPlayerData().catch(() => ({ skipped: false, success: false }));
+    if (!result.success) return false;
+
+    await clearAllLocalData();
+    setPlayerProfile(null);
+    setHighScore(0);
+    setHighestUnlockedLevel(1);
+    setSessionStreak(0);
+    setStreakAtDeath(0);
+    setScreen('home');
+    return true;
+  }
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider style={styles.root}>
@@ -255,15 +274,16 @@ export default function App() {
           initialProfile={playerProfile}
           onBack={profileSetupReturnScreen === 'settings' ? handleSettings : undefined}
           onDone={handleProfileDone}
-          submitLabel={playerProfile ? 'SAVE' : 'CONTINUE'}
-          subtitle={playerProfile ? 'Update your avatar and player name.' : undefined}
-          title={playerProfile ? 'Edit your orbit' : undefined}
+          submitLabel={playerProfile ? strings.saveLabel : strings.continueLabel}
+          subtitle={playerProfile ? strings.editOrbitSubtitle : undefined}
+          title={playerProfile ? strings.editOrbitTitle : undefined}
         />
       )}
 
       {screen === 'settings' && (
         <SettingsScreen
           onBack={handleHome}
+          onDeleteData={handleDeleteMyData}
           onEditProfile={handleEditProfile}
           playerProfile={playerProfile}
         />

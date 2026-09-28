@@ -31,7 +31,7 @@ export default function ScoreboardScreen({
 }: ScoreboardScreenProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const avatar = getPlayerAvatarOption(playerProfile?.avatarId ?? 'nova');
-  const playerName = playerProfile?.username?.toUpperCase() ?? 'YOU';
+  const playerName = playerProfile?.username?.toUpperCase() ?? strings.youFallback;
 
   useEffect(() => {
     let mounted = true;
@@ -72,8 +72,8 @@ export default function ScoreboardScreen({
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.podiumPanel}>
             <View style={styles.podiumHeader}>
-              <Text style={styles.panelTitle}>GLOBAL RANKING</Text>
-              <Text style={styles.panelMeta}>BEST RUN</Text>
+              <Text style={styles.panelTitle}>{strings.globalRanking}</Text>
+              <Text style={styles.panelMeta}>{strings.bestRun}</Text>
             </View>
 
             <View style={styles.podiumRow}>
@@ -87,7 +87,7 @@ export default function ScoreboardScreen({
             accent={colors.neonGold}
             icon={<TrophyIcon color={colors.neonGold} size={34} />}
             label={strings.topScore}
-            tag="YOUR BEST"
+            tag={strings.yourBest}
             value={String(highScore)}
           />
           <TopTenList entries={topTenEntries} />
@@ -172,7 +172,7 @@ function PodiumSlot({
   const isCenter = size === 'center';
   const avatar = entry ? getPlayerAvatarOption(entry.avatarId) : null;
   const avatarAccent = avatar?.accent ?? fallbackAccent;
-  const label = entry?.username.toUpperCase() ?? 'EMPTY';
+  const label = entry?.username.toUpperCase() ?? strings.emptySlot;
   const score = entry ? String(entry.highScore) : '---';
 
   return (
@@ -197,8 +197,8 @@ function TopTenList({ entries }: { entries: LeaderboardEntry[] }) {
   return (
     <View style={styles.topTenPanel}>
       <View style={styles.topTenHeader}>
-        <Text style={styles.panelTitle}>TOP 10 PLAYERS</Text>
-        <Text style={styles.panelMeta}>GLOBAL</Text>
+        <Text style={styles.panelTitle}>{strings.topTenTitle}</Text>
+        <Text style={styles.panelMeta}>{strings.globalTag}</Text>
       </View>
 
       {entries.slice(0, 10).map((entry, index) => {
@@ -220,7 +220,7 @@ function TopTenList({ entries }: { entries: LeaderboardEntry[] }) {
               <Text numberOfLines={1} style={styles.topTenName}>
                 {entry.username.toUpperCase()}
               </Text>
-              <Text style={styles.topTenLevel}>LEVEL {entry.highestUnlockedLevel}</Text>
+              <Text style={styles.topTenLevel}>{strings.levelLabel(entry.highestUnlockedLevel)}</Text>
             </View>
             <Text style={styles.topTenScore}>{entry.highScore}</Text>
           </View>
